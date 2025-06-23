@@ -50,9 +50,9 @@ Este checklist serve como um roteiro para o desenvolvimento do projeto, dividido
 - [X] **Marco:** Fazer uma versão simples do jogo funcionar no console, sem rede, para testar a lógica principal.
 
 ### Módulo 2: Persistência de Dados com XML
-- [ ] Definir a estrutura do arquivo `questoes.xml`.
-- [ ] Criar a classe `dao.QuestaoDAO` com um método para ler o XML e retornar uma `List<Questao>`.
-- [ ] Integrar o DAO na classe `Partida` para carregar as perguntas do arquivo em vez de criá-las no código.
+- [X] Definir a estrutura do arquivo `questoes.xml`.
+- [X] Criar a classe `dao.QuestaoDAO` com um método para ler o XML e retornar uma `List<Questao>`.
+- [X] Integrar o DAO na classe `Partida` para carregar as perguntas do arquivo em vez de criá-las no código.
 - [ ] (Opcional) Criar um DAO para salvar as pontuações mais altas em um arquivo `scores.xml`.
 
 ### Módulo 3: Comunicação em Rede (Cliente-Servidor)
