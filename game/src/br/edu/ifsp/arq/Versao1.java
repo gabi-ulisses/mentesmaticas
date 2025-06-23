@@ -12,7 +12,7 @@ public class Versao1 {
         partida.adicionarJogador(new Jogador("Albert Einstein"));
         partida.adicionarJogador(new Jogador("Marie Curie"));
         
-        partida.carregarQuestoes();
+        partida.carregarQuestoesTxt();
 
         partida.iniciarPartida();
 

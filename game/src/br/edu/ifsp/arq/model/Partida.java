@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+import br.edu.ifsp.arq.dao.QuestaoDAO;
+
 /**
  * "Orquestra" o jogo, gerenciando os jogadores, as questões e o andamento da partida.
  */
@@ -26,7 +28,7 @@ public class Partida {
     }
 
     // Este é um método provisório. No futuro, as questões virão do QuestaoDAO
-    public void carregarQuestoes() {
+    public void carregarQuestoesTxt() {
         String[] opcoesQ1 = {"3", "4", "5"};
         questoes.add(new Questao("Quanto é 2 + 2?", opcoesQ1, 1));
 
@@ -36,6 +38,21 @@ public class Partida {
         String[] opcoesQ3 = {"8", "9", "10"};
         questoes.add(new Questao("Quanto é 3 * 3?", opcoesQ3, 1));
     }
+
+    public void carregarQuestoes() {
+
+        QuestaoDAO dao = new QuestaoDAO();
+    
+        this.questoes = dao.carregarQuestoesDoXML("questoes.xml");
+
+        if (!this.questoes.isEmpty()) {
+            System.out.println(this.questoes.size() + " questões carregadas com sucesso do XML!");
+        } else {
+            System.out.println("Nenhuma questão foi carregada. Verifique o arquivo XML.");
+        }
+    }
+
+
 
     public void iniciarPartida() {
         if (jogadores.size() < 2) {
