@@ -3,7 +3,7 @@ package br.edu.ifsp.arq;
 import br.edu.ifsp.arq.model.Jogador;
 import br.edu.ifsp.arq.model.Partida;
 
-public class App {
+public class Versao1 {
     public static void main(String[] args) {
         System.out.println("Bem-vindo ao MentesMáticas!");
 
