@@ -38,3 +38,39 @@ A estrutura de pacotes é a seguinte:
 * `src/br/edu/ifsp/arq/network`
     * **O quê?** A camada de rede. Gerencia toda a comunicação entre o cliente e o servidor.
     * **Classes:** `Servidor.java`, `Cliente.java`.
+
+## Checklist de Desenvolvimento
+
+Este checklist serve como um roteiro para o desenvolvimento do projeto, dividido nos módulos que planejamos. Marquem as tarefas conforme forem concluídas!
+
+### Módulo 1: Lógica e Estrutura Base
+- [X] Criar a classe `model.Questao` com seus atributos (enunciado, opções, resposta).
+- [X] Criar a classe `model.Jogador` com seus atributos (nome, pontuação).
+- [X] Criar a classe `model.Partida` para gerenciar a lógica do jogo (lista de jogadores, lista de questões, etc.).
+- [X] **Marco:** Fazer uma versão simples do jogo funcionar no console, sem rede, para testar a lógica principal.
+
+### Módulo 2: Persistência de Dados com XML
+- [ ] Definir a estrutura do arquivo `questoes.xml`.
+- [ ] Criar a classe `dao.QuestaoDAO` com um método para ler o XML e retornar uma `List<Questao>`.
+- [ ] Integrar o DAO na classe `Partida` para carregar as perguntas do arquivo em vez de criá-las no código.
+- [ ] (Opcional) Criar um DAO para salvar as pontuações mais altas em um arquivo `scores.xml`.
+
+### Módulo 3: Comunicação em Rede (Cliente-Servidor)
+- [ ] Desenvolver a classe `network.Servidor` para conseguir aceitar uma conexão de cliente via Socket.
+- [ ] Desenvolver a classe `network.Cliente` para conseguir se conectar ao servidor.
+- [ ] Definir um protocolo de comunicação simples (ex: "CONECTAR;NOME_JOGADOR", "PERGUNTA;5*8", "RESPOSTA;40").
+- [ ] Fazer o servidor enviar uma pergunta de teste para o cliente conectado.
+- [ ] Fazer o cliente enviar uma resposta de teste para o servidor.
+- [ ] Implementar **Threads** no `Servidor` para que ele possa lidar com múltiplos clientes simultaneamente.
+
+### Módulo 4: Funcionalidades do Jogo e Concorrência
+- [ ] Implementar a lógica de rodadas e turnos no servidor.
+- [ ] Implementar o temporizador de resposta (usando Threads).
+- [ ] Fazer o servidor transmitir o placar atualizado para todos os clientes.
+- [ ] Implementar as funções de Início e Reinício de partida.
+
+### Módulo 5: Interface Gráfica com Java Swing (Opcional)
+- [ ] Desenvolver a `view.TelaInicial` para o jogador inserir o IP do servidor e seu nome.
+- [ ] Desenvolver a `view.TelaJogo` para exibir a pergunta, as opções, o tempo restante e o placar.
+- [ ] Implementar o `controller.JogoController` para gerenciar os eventos das telas e se comunicar com a camada `network.Cliente`.
+- [ ] **Marco:** Substituir toda a interação de console pela interface gráfica.
