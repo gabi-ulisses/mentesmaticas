@@ -2,7 +2,7 @@
 
 MentesMáticas é um jogo multiplayer em rede onde os jogadores desafiam suas habilidades matemáticas em rodadas de perguntas. O objetivo é acertar o maior número de respostas dentro de um tempo limite e vencer a disputa, tornando a experiência competitiva e educativa ao mesmo tempo.
 
-Este projeto foi desenvolvido como atividade acadêmica para os cursos de Tecnologia em Sistemas para Internet e Análise e Desenvolvimento de Sistemas.
+Este projeto foi desenvolvido como atividade acadêmica para os cursos de Tecnologia em Sistemas para Internet.
 
 ## Tecnologias e Requisitos
 
