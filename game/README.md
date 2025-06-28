@@ -56,17 +56,17 @@ Este checklist serve como um roteiro para o desenvolvimento do projeto, dividido
 - [ ] (Opcional) Criar um DAO para salvar as pontuações mais altas em um arquivo `scores.xml`.
 
 ### Módulo 3: Comunicação em Rede (Cliente-Servidor)
-- [ ] Desenvolver a classe `network.Servidor` para conseguir aceitar uma conexão de cliente via Socket.
-- [ ] Desenvolver a classe `network.Cliente` para conseguir se conectar ao servidor.
-- [ ] Definir um protocolo de comunicação simples (ex: "CONECTAR;NOME_JOGADOR", "PERGUNTA;5*8", "RESPOSTA;40").
-- [ ] Fazer o servidor enviar uma pergunta de teste para o cliente conectado.
-- [ ] Fazer o cliente enviar uma resposta de teste para o servidor.
-- [ ] Implementar **Threads** no `Servidor` para que ele possa lidar com múltiplos clientes simultaneamente.
+- [X] Desenvolver a classe `network.Servidor` para conseguir aceitar uma conexão de cliente via Socket.
+- [X] Desenvolver a classe `network.Cliente` para conseguir se conectar ao servidor.
+- [X] Definir um protocolo de comunicação simples (ex: "CONECTAR;NOME_JOGADOR", "PERGUNTA;5*8", "RESPOSTA;40").
+- [X] Fazer o servidor enviar uma pergunta de teste para o cliente conectado.
+- [X] Fazer o cliente enviar uma resposta de teste para o servidor.
+- [X] Implementar **Threads** no `Servidor` para que ele possa lidar com múltiplos clientes simultaneamente.
 
 ### Módulo 4: Funcionalidades do Jogo e Concorrência
 - [ ] Implementar a lógica de rodadas e turnos no servidor.
 - [ ] Implementar o temporizador de resposta (usando Threads).
-- [ ] Fazer o servidor transmitir o placar atualizado para todos os clientes.
+- [X] Fazer o servidor transmitir o placar atualizado para todos os clientes.
 - [ ] Implementar as funções de Início e Reinício de partida.
 
 ### Módulo 5: Interface Gráfica com Java Swing (Opcional)
