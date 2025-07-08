@@ -64,7 +64,10 @@ Este checklist serve como um roteiro para o desenvolvimento do projeto, dividido
 - [X] Implementar **Threads** no `Servidor` para que ele possa lidar com múltiplos clientes simultaneamente.
 
 ### Módulo 4: Funcionalidades do Jogo e Concorrência
-- [ ] Implementar a lógica de rodadas e turnos no servidor.
+- [X] Implementar a lógica de rodadas e turnos no servidor.
+    - [X] Refatorar a classe Partida para ser um Runnable que gerencia uma sessão de jogo em rede.
+    - [X] Criar uma fila segura (FilaDeRespostas) para gerenciar respostas concorrentes dos jogadores.
+    - [X] Implementar o padrão Produtor-Consumidor com threads "Ouvintes" para receber as respostas.
 - [ ] Implementar o temporizador de resposta (usando Threads).
 - [X] Fazer o servidor transmitir o placar atualizado para todos os clientes.
 - [ ] Implementar as funções de Início e Reinício de partida.
