@@ -8,7 +8,14 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
-public class Cliente {
+
+/**
+ * Versão LEGADA do cliente, baseada em console (terminal).
+ * Esta classe foi mantida no projeto para fins de depuração e para permitir
+ * testes rápidos da lógica do servidor sem a necessidade da interface gráfica.
+ * A aplicação principal para o usuário final deve ser executada a partir da classe AppGUI.
+ */
+public class ClienteConsole {
 
     public static void main(String[] args) {
         String ipServidor = Servidor.IP;
