@@ -73,7 +73,7 @@ Este checklist serve como um roteiro para o desenvolvimento do projeto, dividido
 - [ ] Implementar as funções de Início e Reinício de partida.
 
 ### Módulo 5: Interface Gráfica com Java Swing (Opcional)
-- [ ] Desenvolver a `view.TelaInicial` para o jogador inserir o IP do servidor e seu nome.
-- [ ] Desenvolver a `view.TelaJogo` para exibir a pergunta, as opções, o tempo restante e o placar.
-- [ ] Implementar o `controller.JogoController` para gerenciar os eventos das telas e se comunicar com a camada `network.Cliente`.
-- [ ] **Marco:** Substituir toda a interação de console pela interface gráfica.
+- [X] Desenvolver a `view.TelaInicial` para o jogador inserir o IP do servidor e seu nome.
+- [X] Desenvolver a `view.TelaJogo` para exibir a pergunta, as opções, o tempo restante e o placar.
+- [X] Implementar o `controller.JogoController` para gerenciar os eventos das telas e se comunicar com a camada `network.Cliente`.
+- [X] **Marco:** Substituir toda a interação de console pela interface gráfica.
