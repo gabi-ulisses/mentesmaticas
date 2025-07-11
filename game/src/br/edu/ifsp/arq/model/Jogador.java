@@ -1,5 +1,7 @@
 package br.edu.ifsp.arq.model;
 
+import java.util.Objects;
+
 /**
  * Representa um jogador no jogo, com seu nome e pontuação.
  */
@@ -17,13 +19,24 @@ public class Jogador {
         return nome;
     }
 
-
-
     public int getPontuacao() {
         return pontuacao;
     }
 
     public void adicionarPonto() {
         this.pontuacao++;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Jogador jogador = (Jogador) o;
+        return Objects.equals(nome, jogador.nome);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(nome);
     }
 }
