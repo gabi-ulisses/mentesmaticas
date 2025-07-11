@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<listaDeQuestoes>
+
+    <questao correta="1">
+        <enunciado>Qual o resultado da operação 5 + 3 * 2?</enunciado>
+        <opcoes>
+            <opcao>16</opcao>
+            <opcao>11</opcao>
+            <opcao>13</opcao>
+        </opcoes>
+    </questao>
+
+    <questao correta="2">
+        <enunciado>Quanto é 25% de 200?</enunciado>
+        <opcoes>
+            <opcao>25</opcao>
+            <opcao>40</opcao>
+            <opcao>50</opcao>
+        </opcoes>
+    </questao>
+
+    <questao correta="1">
+        <enunciado>Qual é a raiz quadrada de 81?</enunciado>
+        <opcoes>
+            <opcao>8</opcao>
+            <opcao>9</opcao>
+            <opcao>7</opcao>
+        </opcoes>
+    </questao>
+
+    <questao correta="0">
+        <enunciado>Se 2x - 3 = 7, qual o valor de x?</enunciado>
+        <opcoes>
+            <opcao>5</opcao>
+            <opcao>4</opcao>
+            <opcao>6</opcao>
+        </opcoes>
+    </questao>
+
+    <questao correta="2">
+        <enunciado>Qual a área de um quadrado com lado de 6 cm?</enunciado>
+        <opcoes>
+            <opcao>24 cm²</opcao>
+            <opcao>30 cm²</opcao>
+            <opcao>36 cm²</opcao>
+        </opcoes>
+    </questao>
+    
+    <questao correta="2">
+        <enunciado>Qual dos seguintes números é um número primo?</enunciado>
+        <opcoes>
+            <opcao>9</opcao>
+            <opcao>15</opcao>
+            <opcao>13</opcao>
+        </opcoes>
+    </questao>
+
+    <questao correta="1">
+        <enunciado>Um evento começou às 14:45 e terminou às 17:15. Qual foi a duração do evento?</enunciado>
+        <opcoes>
+            <opcao>2 horas e 15 minutos</opcao>
+            <opcao>2 horas e 30 minutos</opcao>
+            <opcao>3 horas</opcao>
+        </opcoes>
+    </questao>
+
+</listaDeQuestoes>
