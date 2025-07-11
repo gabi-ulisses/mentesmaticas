@@ -5,194 +5,199 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Scanner;
 
+/**
+ * Orquestra uma sessão completa do jogo MentesMáticas como uma thread.
+ * Esta classe gerencia a configuração dos jogadores, o ciclo de vida da partida,
+ * a lógica de turnos e a comunicação em rede de forma segura e concorrente.
+ */
 public class Partida implements Runnable {
 
     private List<Questao> questoes;
-    private List<Jogador> jogadores;
-    private boolean partidaEmAndamento;
+    private final List<ClientConnection> connections;
+    private final FilaDeRespostas filaDeRespostas;
+    private volatile boolean partidaEmAndamento;
 
-    private List<ObjectOutputStream> saidas = null;
-    private List<ObjectInputStream> entradas = null;
+    // Classe interna para agrupar tudo relacionado a um jogador
+    private static class ClientConnection {
+        final ObjectInputStream entrada;
+        final ObjectOutputStream saida;
+        Jogador jogador; // Será definido após o jogador digitar o nome
+
+        ClientConnection(ObjectInputStream in, ObjectOutputStream out) {
+            this.entrada = in;
+            this.saida = out;
+        }
+    }
 
     public Partida(ObjectInputStream entrada1, ObjectOutputStream saida1, ObjectInputStream entrada2, ObjectOutputStream saida2) {
         this.questoes = new ArrayList<>();
-        this.jogadores = new ArrayList<>();
-        this.partidaEmAndamento = false;
+        this.connections = new ArrayList<>();
+        this.filaDeRespostas = new FilaDeRespostas();
         
-        this.entradas = new ArrayList<>();
-        this.saidas = new ArrayList<>();
-        
-        this.entradas.add(entrada1);
-        this.entradas.add(entrada2);
-        this.saidas.add(saida1);
-        this.saidas.add(saida2);
+        // Adiciona as duas conexões à lista
+        this.connections.add(new ClientConnection(entrada1, saida1));
+        this.connections.add(new ClientConnection(entrada2, saida2));
     }
 
     @Override
     public void run() {
         try {
             this.partidaEmAndamento = true;
+
+            // Fase 1: Configurar jogadores (obter nomes)
+            configurarJogadores();
             
-            for (int i = 0; i < 2; i++) {
-                enviarMensagemParaJogador(i, "Bem-vindo! Por favor, digite seu nome:");
-                String nome = (String) entradas.get(i).readObject();
-                this.jogadores.add(new Jogador(nome));
-                System.out.println("Jogador conectado: " + nome);
+            // Fase 2: Ordenar jogadores e iniciar threads "Ouvintes"
+            connections.sort(Comparator.comparing(c -> c.jogador.getNome(), String.CASE_INSENSITIVE_ORDER));
+            for (ClientConnection conn : connections) {
+                iniciarOuvinte(conn);
             }
             
-            transmitirParaTodos("A partida vai começar!");
-            carregarQuestoes();
+            // Fase 3: Iniciar e executar a lógica principal do jogo
+            jogar();
 
-            for (Questao questao : questoes) {
-                transmitirParaTodos("\nPergunta: " + questao.getEnunciado());
-                String[] opcoes = questao.getOpcoes();
-                for (int i = 0; i < opcoes.length; i++) {
-                    transmitirParaTodos((char) ('a' + i) + ") " + opcoes[i]);
+        } catch (Exception e) {
+            System.err.println("Partida encerrada por erro crítico: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            this.partidaEmAndamento = false;
+            encerrarConexoes();
+        }
+    }
+    
+    private void configurarJogadores() throws IOException, ClassNotFoundException {
+        for (ClientConnection conn : connections) {
+            conn.saida.writeObject("Bem-vindo! Por favor, digite seu nome: ");
+            String nome = (String) conn.entrada.readObject();
+            conn.jogador = new Jogador(nome);
+            System.out.println("Jogador '" + nome + "' configurado.");
+        }
+    }
+
+    private void iniciarOuvinte(ClientConnection conn) {
+        new Thread(() -> {
+            while (partidaEmAndamento) {
+                try {
+                    String textoResposta = (String) conn.entrada.readObject();
+                    filaDeRespostas.adicionar(new RespostaJogador(conn.jogador, textoResposta));
+                } catch (IOException | ClassNotFoundException e) {
+                    break; 
+                }
+            }
+        }).start();
+    }
+
+    private void jogar() throws IOException, InterruptedException {
+        transmitirParaTodos("Todos os jogadores estão conectados e ordenados.");
+        transmitirParaTodos("A partida vai começar!");
+        carregarQuestoes();
+
+        for (Questao questao : questoes) {
+            transmitirParaTodos("\n----- NOVA RODADA -----");
+            transmitirParaTodos("Pergunta: " + questao.getEnunciado());
+            for (int i = 0; i < questao.getOpcoes().length; i++) {
+                transmitirParaTodos((char) ('a' + i) + ") " + questao.getOpcoes()[i]);
+            }
+            
+            filaDeRespostas.limpar();
+
+            for (ClientConnection connDaVez : connections) {
+                Jogador jogadorDaVez = connDaVez.jogador;
+                
+                enviarMensagemParaJogador(jogadorDaVez, "PROMPT|Sua vez, " + jogadorDaVez.getNome() + "! Resposta: ");
+                for (ClientConnection outraConn : connections) {
+                    if (!outraConn.jogador.equals(jogadorDaVez)) {
+                        enviarMensagemParaJogador(outraConn.jogador, "Aguarde a vez de " + jogadorDaVez.getNome() + "...");
+                    }
                 }
 
-                for (int i = 0; i < jogadores.size(); i++) {
-                    String respostaTexto = (String) entradas.get(i).readObject();
-                    char respostaChar = respostaTexto.toLowerCase().charAt(0);
-                    int respostaIndex = respostaChar - 'a';
-
-                    if (questao.isRespostaCorreta(respostaIndex)) {
-                        jogadores.get(i).adicionarPonto();
-                        transmitirParaTodos("-> " + jogadores.get(i).getNome() + " acertou!");
+                RespostaJogador respostaRecebida = null;
+                while (partidaEmAndamento) {
+                    RespostaJogador r = filaDeRespostas.remover();
+                    if (r.jogador.equals(jogadorDaVez)) {
+                        respostaRecebida = r;
+                        break; 
                     } else {
-                        transmitirParaTodos("-> " + jogadores.get(i).getNome() + " errou.");
+                        enviarMensagemParaJogador(r.jogador, "Aviso: Não é a sua vez de responder.");
                     }
                 }
                 
-                transmitirParaTodos("\n--- PLACAR ---");
-                for (Jogador jogador : jogadores) {
-                    transmitirParaTodos(jogador.getNome() + ": " + jogador.getPontuacao() + " ponto(s)");
+                if (respostaRecebida != null) {
+                     char respostaChar = respostaRecebida.textoResposta.toLowerCase().charAt(0);
+                     int respostaIndex = respostaChar - 'a';
+                     if (questao.isRespostaCorreta(respostaIndex)) {
+                         jogadorDaVez.adicionarPonto();
+                         transmitirParaTodos(jogadorDaVez.getNome() + " acertou!");
+                     } else {
+                         transmitirParaTodos(jogadorDaVez.getNome() + " errou.");
+                     }
                 }
-                transmitirParaTodos("--------------");
             }
-
-            Jogador vencedor = jogadores.get(0);
-            if (jogadores.size() > 1 && jogadores.get(1).getPontuacao() > vencedor.getPontuacao()) {
-                vencedor = jogadores.get(1);
-            }
-            transmitirParaTodos("\nO vencedor é: " + vencedor.getNome());
-
-        } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Partida encerrada por erro de conexão: " + e.getMessage());
-        } finally {
-            this.partidaEmAndamento = false;
+            exibirPlacarGeral();
+            Thread.sleep(4000); 
         }
+        
+        anunciarVencedorFinal();
+    }
+
+    private void exibirPlacarGeral() throws IOException {
+        transmitirParaTodos("\n--- PLACAR ---");
+        for (ClientConnection conn : connections) {
+            transmitirParaTodos(conn.jogador.getNome() + ": " + conn.jogador.getPontuacao() + " ponto(s)");
+        }
+        transmitirParaTodos("--------------");
     }
     
-    private void enviarMensagemParaJogador(int i, String msg) throws IOException {
-        saidas.get(i).writeObject(msg);
+    private void anunciarVencedorFinal() throws IOException {
+        int maxPontos = -1;
+        List<Jogador> jogadores = new ArrayList<>();
+        for (ClientConnection conn : connections) {
+            jogadores.add(conn.jogador);
+            maxPontos = Math.max(maxPontos, conn.jogador.getPontuacao());
+        }
+        
+        List<Jogador> vencedores = new ArrayList<>();
+        for (Jogador j : jogadores) { if (j.getPontuacao() == maxPontos) { vencedores.add(j); } }
+        
+        transmitirParaTodos("\n----- FIM DE JOGO -----");
+        if (vencedores.size() > 1) {
+            transmitirParaTodos("Houve um empate entre os finalistas com " + maxPontos + " pontos!");
+        } else if (!vencedores.isEmpty()){
+            transmitirParaTodos("O grande vencedor é: " + vencedores.get(0).getNome() + " com " + maxPontos + " pontos!");
+        }
+    }
+
+    private void enviarMensagemParaJogador(Jogador jogador, String msg) throws IOException {
+        for(ClientConnection conn : connections) {
+            if(conn.jogador != null && conn.jogador.equals(jogador)) {
+                conn.saida.writeObject(msg);
+                conn.saida.flush();
+                return;
+            }
+        }
     }
 
     private void transmitirParaTodos(String msg) throws IOException {
-        for(ObjectOutputStream saida : saidas) {
-            saida.writeObject(msg);
+        for (ClientConnection conn : connections) {
+            conn.saida.writeObject(msg);
+            conn.saida.flush();
         }
     }
     
-    public Partida() {
-        this.questoes = new ArrayList<>();
-        this.jogadores = new ArrayList<>();
-        this.partidaEmAndamento = false;
-    }
-
-    public void adicionarJogador(Jogador jogador) {
-        if (!partidaEmAndamento) {
-            this.jogadores.add(jogador);
-        }
-    }
-
-    public void carregarQuestoesTxt() {
-        String[] opcoesQ1 = {"3", "4", "5"};
-        questoes.add(new Questao("Quanto é 2 + 2?", opcoesQ1, 1));
-        String[] opcoesQ2 = {"Paris", "Londres", "Roma"};
-        questoes.add(new Questao("Qual a capital da França?", opcoesQ2, 0));
-        String[] opcoesQ3 = {"8", "9", "10"};
-        questoes.add(new Questao("Quanto é 3 * 3?", opcoesQ3, 1));
-    }
-
-    public void carregarQuestoes() {
+    private void carregarQuestoes() {
         QuestaoDAO dao = new QuestaoDAO();
         this.questoes = dao.carregarQuestoesDoXML("questoes.xml");
-        if (!this.questoes.isEmpty()) {
-            System.out.println(this.questoes.size() + " questões carregadas com sucesso do XML!");
-        } else {
-            System.out.println("Nenhuma questão foi carregada. Verifique o arquivo XML.");
-        }
     }
-
-    public void iniciarPartida() {
-        if (jogadores.size() < 2) {
-            System.out.println("A partida precisa de no mínimo 2 jogadores.");
-            return;
+    
+    private void encerrarConexoes() {
+        partidaEmAndamento = false;
+        for(ClientConnection conn : connections) {
+            try { conn.saida.close(); } catch (IOException e) {}
+            try { conn.entrada.close(); } catch (IOException e) {}
         }
-        if (questoes.isEmpty()) {
-            System.out.println("Nenhuma questão carregada. A partida não pode começar.");
-            return;
-        }
-
-        char[] letrasOpcoes = {'a', 'b', 'c', 'd', 'e'};
-        this.partidaEmAndamento = true;
-        System.out.println("\n--- A PARTIDA VAI COMEÇAR! ---");
-        Scanner scanner = new Scanner(System.in);
-
-        for (int i = 0; i < questoes.size(); i++) {
-            System.out.println("\n----- RODADA " + (i + 1) + " -----");
-            Questao questaoDaVez = questoes.get(i);
-            for (Jogador jogador : jogadores) {
-                System.out.println("\n>> Vez do jogador: " + jogador.getNome());
-                System.out.println("Pergunta: " + questaoDaVez.getEnunciado());
-                String[] opcoes = questaoDaVez.getOpcoes();
-                for (int j = 0; j < opcoes.length; j++) {
-                    System.out.println(letrasOpcoes[j] + ") " + opcoes[j]);
-                }
-                System.out.print("Sua resposta (digite a letra): ");
-                String respostaTexto = scanner.next();
-                char respostaChar = respostaTexto.toLowerCase().charAt(0);
-                int respostaIndex = -1;
-                for (int j = 0; j < letrasOpcoes.length; j++) {
-                    if (letrasOpcoes[j] == respostaChar) {
-                        respostaIndex = j;
-                        break;
-                    }
-                }
-                if (questaoDaVez.isRespostaCorreta(respostaIndex)) {
-                    jogador.adicionarPonto();
-                    System.out.println("Resposta CORRETA! Ponto para " + jogador.getNome() + "!");
-                } else {
-                    System.out.println("Resposta INCORRETA.");
-                }
-            }
-            exibirPlacar();
-        }
-
-        scanner.close();
-        this.partidaEmAndamento = false;
-        System.out.println("\n----- FIM DE JOGO -----");
-        exibirVencedor();
-    }
-
-    private void exibirPlacar() {
-        System.out.println("\n--- PLACAR ---");
-        for (Jogador jogador : jogadores) {
-            System.out.println(jogador.getNome() + ": " + jogador.getPontuacao() + " ponto(s)");
-        }
-        System.out.println("--------------");
-    }
-
-    private void exibirVencedor() {
-        Jogador vencedor = jogadores.get(0);
-        for (int i = 1; i < jogadores.size(); i++) {
-            if (jogadores.get(i).getPontuacao() > vencedor.getPontuacao()) {
-                vencedor = jogadores.get(i);
-            }
-        }
-        System.out.println("O grande vencedor é: " + vencedor.getNome());
+        System.out.println("Partida finalizada e conexões encerradas.");
     }
 }
