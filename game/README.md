@@ -68,9 +68,9 @@ Este checklist serve como um roteiro para o desenvolvimento do projeto, dividido
     - [X] Refatorar a classe Partida para ser um Runnable que gerencia uma sessão de jogo em rede.
     - [X] Criar uma fila segura (FilaDeRespostas) para gerenciar respostas concorrentes dos jogadores.
     - [X] Implementar o padrão Produtor-Consumidor com threads "Ouvintes" para receber as respostas.
-- [ ] Implementar o temporizador de resposta (usando Threads).
+- [X] Implementar o temporizador de resposta (usando Threads).
 - [X] Fazer o servidor transmitir o placar atualizado para todos os clientes.
-- [ ] Implementar as funções de Início e Reinício de partida.
+- [X] Implementar as funções de Início e Reinício de partida.
 
 ### Módulo 5: Interface Gráfica com Java Swing (Opcional)
 - [X] Desenvolver a `view.TelaInicial` para o jogador inserir o IP do servidor e seu nome.
