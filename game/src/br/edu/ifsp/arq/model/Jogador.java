@@ -27,6 +27,10 @@ public class Jogador {
         this.pontuacao++;
     }
 
+    public void resetarPontuacao() {
+        this.pontuacao = 0;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
