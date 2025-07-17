@@ -16,7 +16,8 @@ public class Servidor {
         try {
             InetAddress endereco = InetAddress.getByName(IP);
             
-            try (ServerSocket servidor = new ServerSocket(PORTA, 2, endereco)) {
+            try (ServerSocket servidor = new ServerSocket(Config.getPorta(), 2, InetAddress.getByName(Config.getIp()))) {
+
                 System.out.println("Servidor MentesMáticas iniciado em: " + servidor.getInetAddress().getHostAddress() + ":" + PORTA);
 
                 while (true) {

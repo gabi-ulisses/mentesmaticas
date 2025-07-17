@@ -23,7 +23,7 @@ public class Cliente {
 
     public boolean conectar() {
         try {
-            conexao = new Socket(InetAddress.getByName(Servidor.IP), Servidor.PORTA);
+            conexao = new Socket(InetAddress.getByName(Config.getIp()), Config.getPorta());
             saida = new ObjectOutputStream(conexao.getOutputStream());
             entrada = new ObjectInputStream(conexao.getInputStream());
             
