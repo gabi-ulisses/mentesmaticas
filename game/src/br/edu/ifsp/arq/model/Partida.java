@@ -153,7 +153,8 @@ public class Partida implements Runnable {
             String[] opcoes = questao.getOpcoes();
             StringBuilder opcoesFormatadas = new StringBuilder();
             for (int i = 0; i < opcoes.length; i++) {
-                opcoesFormatadas.append((char)('a' + i)).append(") ").append(opcoes[i]);
+                // Apenas anexa a opção, sem a letra. O cliente irá formatar.
+                opcoesFormatadas.append(opcoes[i]); 
                 if (i < opcoes.length - 1) {
                     opcoesFormatadas.append(";"); // Usa ; como separador de opções
                 }
@@ -199,19 +200,41 @@ public class Partida implements Runnable {
                 
                 if (timerGeral != null) timerGeral.cancel();
 
+                // CÓDIGO CORRIGIDO em Partida.java
                 if (respostaRecebida != null && !respostaRecebida.textoResposta.isEmpty()) {
-                     char respostaChar = respostaRecebida.textoResposta.toLowerCase().charAt(0);
-                     int respostaIndex = respostaChar - 'a';
-                     if (questao.isRespostaCorreta(respostaIndex)) {
-                         jogadorDaVez.adicionarPonto();
-                         transmitirParaTodos(jogadorDaVez.getNome() + " acertou!");
-                     } else {
-                         transmitirParaTodos(jogadorDaVez.getNome() + " errou.");
-                     }
-                }else {
-                    // Garante que o resultado do turno seja anunciado mesmo se o tempo esgotar.
+                    char respostaChar = respostaRecebida.textoResposta.toLowerCase().charAt(0);
+                    int respostaIndex = respostaChar - 'a';
+                    boolean acertou = questao.isRespostaCorreta(respostaIndex);
+
+                    if (acertou) {
+                        // Adiciona o ponto ao jogador que de fato respondeu
+                        respostaRecebida.jogador.adicionarPonto();
+                    }
+
+                    // Envia mensagens personalizadas para cada jogador
+                    for (ClientConnection conn : connections) {
+                        try {
+                            if (conn.jogador.equals(respostaRecebida.jogador)) {
+                                // Mensagem para o jogador que respondeu
+                                String msgParaJogadorAtivo = acertou ? "Você acertou!" : "Você errou.";
+                                conn.saida.writeObject(msgParaJogadorAtivo);
+                                conn.saida.flush();
+                            } else {
+                                // Mensagem para o jogador que estava esperando
+                                String msgParaJogadorEmEspera = acertou ? respostaRecebida.jogador.getNome() + " acertou!" : respostaRecebida.jogador.getNome() + " errou.";
+                                conn.saida.writeObject(msgParaJogadorEmEspera);
+                                conn.saida.flush();
+                            }
+                        } catch (IOException e) {
+                            System.out.println("Falha ao transmitir resultado para " + (conn.jogador != null ? conn.jogador.getNome() : "desconhecido") + ".");
+                            sessaoAtiva = false; // Se a comunicação falha, encerra a sessão.
+                        }
+                    }
+                } else {
+                    // A lógica de tempo esgotado continua a mesma, pois afeta a todos.
                     transmitirParaTodos("-> " + jogadorDaVez.getNome() + " não respondeu a tempo.");
                 }
+                
             }
             exibirPlacarGeral();
             Thread.sleep(4000); 
