@@ -109,7 +109,7 @@ public class Partida implements Runnable {
     private void configurarJogadores() throws IOException, ClassNotFoundException {
 
         for (ClientConnection conn : connections) {
-            conn.saida.writeObject("Bem-vindo! Por favor, digite seu nome: ");
+            conn.saida.writeObject("Bem-vindo ao Mentes Máticas!\n\n Regras do Jogo: \n     1. A ordem de jogadas é definida pelo nome do jogador, em ordem alfabética.\n       2. Cada jogador tem 60 segundos para responder cada pergunta.\n         3. As respostas válidas são as letras das opções apresentadas.\n        4. Respostas corretas valem 1 ponto.\n      5. O jogo termina quando todas as perguntas forem respondidas ou se um jogador desconectar.\n\n");
             String nome = (String) conn.entrada.readObject();
             conn.jogador = new Jogador(nome);
             System.out.println("Jogador '" + nome + "' configurado.");
@@ -140,6 +140,7 @@ public class Partida implements Runnable {
 
     // Contém a lógica de uma partida completa, com todas as suas rodadas.
     private void jogar() throws IOException, InterruptedException {
+        transmitirParaTodos("CONTROL|START_GAME");
         transmitirParaTodos("Todos os jogadores estão conectados e ordenados.");
         transmitirParaTodos("A partida vai começar!");
         carregarQuestoes();
@@ -149,13 +150,19 @@ public class Partida implements Runnable {
             if(!sessaoAtiva) break;
             
             transmitirParaTodos("\n----- NOVA RODADA -----");
-            transmitirParaTodos("Pergunta: " + questao.getEnunciado());
-            for (int i = 0; i < questao.getOpcoes().length; i++) {
-                transmitirParaTodos((char) ('a' + i) + ") " + questao.getOpcoes()[i]);
+            String[] opcoes = questao.getOpcoes();
+            StringBuilder opcoesFormatadas = new StringBuilder();
+            for (int i = 0; i < opcoes.length; i++) {
+                opcoesFormatadas.append((char)('a' + i)).append(") ").append(opcoes[i]);
+                if (i < opcoes.length - 1) {
+                    opcoesFormatadas.append(";"); // Usa ; como separador de opções
+                }
             }
             
-            filaDeRespostas.clear(); // Limpa respostas da rodada anterior.
-
+            String perguntaMsg = String.format("PERGUNTA|%s|%s", questao.getEnunciado(), opcoesFormatadas.toString());
+            transmitirParaTodos(perguntaMsg);
+            
+            filaDeRespostas.clear();
             // Loop para o turno de cada jogador.
             for (ClientConnection connDaVez : connections) {
                 if(!sessaoAtiva) break;
@@ -282,12 +289,13 @@ public class Partida implements Runnable {
     }
 
     private void exibirPlacarGeral() throws IOException {
-        // Lógica do placar 
-        transmitirParaTodos("\n--- PLACAR ---");
-        for (ClientConnection conn : connections) {
-            transmitirParaTodos(conn.jogador.getNome() + ": " + conn.jogador.getPontuacao() + " ponto(s)");
-        }
-        transmitirParaTodos("--------------");
+        // Monta a mensagem de placar no formato que o Controller espera.
+        // Ex: "PLACAR|Ana;1;Gabrielle;0"
+        String placarMsg = String.format("PLACAR|%s;%d;%s;%d",
+            connections.get(0).jogador.getNome(), connections.get(0).jogador.getPontuacao(),
+            connections.get(1).jogador.getNome(), connections.get(1).jogador.getPontuacao()
+        );
+        transmitirParaTodos(placarMsg);
     }
     
     private void anunciarVencedorFinal() throws IOException {
@@ -315,10 +323,14 @@ public class Partida implements Runnable {
     }
 
     private void enviarMensagemParaJogador(Jogador jogador, String msg) throws IOException {
-        // Enviar mensagem 
         for(ClientConnection conn : connections) {
             if(conn.jogador != null && conn.jogador.equals(jogador)) {
-                conn.saida.writeObject(msg);
+                // Se a mensagem não for um prompt, o controller a tratará como status de turno
+                if(!msg.startsWith("PROMPT|")) {
+                    conn.saida.writeObject("TURNO|" + msg);
+                } else {
+                    conn.saida.writeObject(msg);
+                }
                 conn.saida.flush();
                 return;
             }
