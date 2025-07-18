@@ -9,16 +9,13 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class Servidor {
-    public static final int PORTA = 12345;
-    public static final String IP = "127.0.0.1"; 
 
     public static void main(String[] args) {
         try {
-            InetAddress endereco = InetAddress.getByName(IP);
             
             try (ServerSocket servidor = new ServerSocket(Config.getPorta(), 2, InetAddress.getByName(Config.getIp()))) {
 
-                System.out.println("Servidor MentesMáticas iniciado em: " + servidor.getInetAddress().getHostAddress() + ":" + PORTA);
+                System.out.println("Servidor MentesMáticas iniciado em: " + Config.getIp() + ":" + Config.getPorta());
 
                 while (true) {
                     System.out.println("\nAguardando 2 jogadores para uma nova partida...");

@@ -15,21 +15,25 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Orquestra uma sessão completa do jogo MentesMáticas como uma thread.
- * Gerencia o ciclo de vida da partida, a lógica de turnos, o reinício
- * e a comunicação em rede, incluindo o temporizador visível para os jogadores.
+ * É o "Mestre do Jogo". Controla uma partida completa para uma dupla de jogadores.
+ * Roda em seu próprio "trabalho" (Thread) para não travar o servidor principal.
  */
 public class Partida implements Runnable {
-    
+
+    // Constante para definir o tempo de resposta em segundos para cada turno.
     private static final int TEMPO_POR_RODADA_SEGUNDOS = 60;
 
     private List<Questao> questoes;
+    // Lista para guardar as informações de conexão de cada jogador.
     private final List<ClientConnection> connections;
+    // "volatile" garante que as outras threads sempre vejam o valor mais atual desta variável.
     private volatile boolean sessaoAtiva;
     private volatile boolean partidaEmAndamento;
     private Timer timerGeral; 
 
+    // Fila para as RESPOSTAS das perguntas.
     private final BlockingQueue<RespostaJogador> filaDeRespostas = new LinkedBlockingQueue<>();
+    // Fila para os COMANDOS dos jogadores.
     private final BlockingQueue<ComandoJogador> filaDeComandos = new LinkedBlockingQueue<>();
 
     // Classe interna para agrupar tudo relacionado a um jogador
@@ -44,7 +48,7 @@ public class Partida implements Runnable {
         }
     }
     
-    // Classe interna para comandos (ex: reiniciar partida)
+    // Classe interna para agrupar o jogador e um comando que ele enviou.
     private static class ComandoJogador {
         final Jogador jogador;
         final String comando;
@@ -55,10 +59,11 @@ public class Partida implements Runnable {
         }
     }
 
-
+    // Prepara o objeto Partida com as conexões dos dois jogadores.
     public Partida(ObjectInputStream entrada1, ObjectOutputStream saida1, ObjectInputStream entrada2, ObjectOutputStream saida2) {
         this.questoes = new ArrayList<>();
         this.connections = new ArrayList<>();
+        // Adiciona as duas conexões à lista para serem configuradas depois.
         this.connections.add(new ClientConnection(entrada1, saida1));
         this.connections.add(new ClientConnection(entrada2, saida2));
     }
@@ -67,9 +72,12 @@ public class Partida implements Runnable {
     public void run() {
         try {
             this.sessaoAtiva = true;
+            // Pega os nomes dos jogadores.
             configurarJogadores();
+            // Ordena a lista de conexões com base no nome do jogador em ordem alfabética.
             connections.sort(Comparator.comparing(c -> c.jogador.getNome(), String.CASE_INSENSITIVE_ORDER));
 
+            // Inicia as threads ouvintes, um para cada jogador.
             for (ClientConnection conn : connections) {
                 iniciarOuvinte(conn);
             }
@@ -79,10 +87,11 @@ public class Partida implements Runnable {
                 partidaEmAndamento = true;
                 jogar();
                 partidaEmAndamento = false;
-                
+
+                // Se a sessão ainda estiver ativa, pergunta se querem jogar de novo.
                 if (sessaoAtiva) {
                     jogarNovamente = perguntarSeQuerJogarNovamente();
-                    if(jogarNovamente) {
+                    if(jogarNovamente) { // Se ambos disserem sim, reseta o jogo.
                         resetarPartida();
                     }
                 }
@@ -92,12 +101,13 @@ public class Partida implements Runnable {
             System.err.println("Sessão encerrada por erro crítico: " + e.getMessage());
         } finally {
             this.sessaoAtiva = false;
-            encerrarConexoes();
+            encerrarConexoes(); // Garante que as conexões sejam fechadas.
         }
     }
-    
+
+    // Obtém o nome de cada jogador, enviado pelo cliente, um de cada vez.
     private void configurarJogadores() throws IOException, ClassNotFoundException {
-        // Lógica para configurar jogadores (sem alterações)
+
         for (ClientConnection conn : connections) {
             conn.saida.writeObject("Bem-vindo! Por favor, digite seu nome: ");
             String nome = (String) conn.entrada.readObject();
@@ -106,15 +116,18 @@ public class Partida implements Runnable {
         }
     }
 
+    // Cria uma thread "ouvinte" para cada jogador.
     private void iniciarOuvinte(ClientConnection conn) {
-        // Lógica do ouvinte (sem alterações)
         new Thread(() -> {
             while (sessaoAtiva) {
                 try {
+                    // Fica esperando por uma mensagem do jogador.
                     String mensagem = (String) conn.entrada.readObject();
+                    // Decide se a mensagem é um comando ou uma resposta.
                     if (mensagem.startsWith("CMD|")) {
                         filaDeComandos.put(new ComandoJogador(conn.jogador, mensagem.substring(4)));
                     } else if (partidaEmAndamento) {
+                        // Se der erro (ex: jogador desconectou), encerra a sessão.
                         filaDeRespostas.put(new RespostaJogador(conn.jogador, mensagem));
                     }
                 } catch (IOException | ClassNotFoundException | InterruptedException e) {
@@ -125,11 +138,13 @@ public class Partida implements Runnable {
         }).start();
     }
 
+    // Contém a lógica de uma partida completa, com todas as suas rodadas.
     private void jogar() throws IOException, InterruptedException {
         transmitirParaTodos("Todos os jogadores estão conectados e ordenados.");
         transmitirParaTodos("A partida vai começar!");
         carregarQuestoes();
 
+        // Loop principal para cada questão (rodada).
         for (Questao questao : questoes) {
             if(!sessaoAtiva) break;
             
@@ -139,8 +154,9 @@ public class Partida implements Runnable {
                 transmitirParaTodos((char) ('a' + i) + ") " + questao.getOpcoes()[i]);
             }
             
-            filaDeRespostas.clear();
+            filaDeRespostas.clear(); // Limpa respostas da rodada anterior.
 
+            // Loop para o turno de cada jogador.
             for (ClientConnection connDaVez : connections) {
                 if(!sessaoAtiva) break;
                 
@@ -185,6 +201,9 @@ public class Partida implements Runnable {
                      } else {
                          transmitirParaTodos(jogadorDaVez.getNome() + " errou.");
                      }
+                }else {
+                    // Garante que o resultado do turno seja anunciado mesmo se o tempo esgotar.
+                    transmitirParaTodos("-> " + jogadorDaVez.getNome() + " não respondeu a tempo.");
                 }
             }
             exibirPlacarGeral();
@@ -195,7 +214,8 @@ public class Partida implements Runnable {
             anunciarVencedorFinal();
         }
     }
-    
+
+    // Inicia um contador regressivo para a rodada.
     private void iniciarTimerRodada(Jogador jogadorDaVez) {
         if(timerGeral != null) timerGeral.cancel();
         timerGeral = new Timer();
@@ -215,8 +235,8 @@ public class Partida implements Runnable {
                         transmitirParaTodos("TIMER|0");
                         enviarMensagemParaJogador(jogadorDaVez, "Tempo esgotado! Você não respondeu a tempo.");
                         transmitirParaTodos(jogadorDaVez.getNome() + " não respondeu a tempo.");
-                        filaDeRespostas.offer(new RespostaJogador(jogadorDaVez, ""));
-                        cancel(); // Para este TimerTask
+                        // A mensagem de "não respondeu a tempo" agora será tratada pelo método jogar().
+                        cancel(); 
                     }
                 } catch(IOException e) {
                     System.err.println("Erro ao transmitir tempo: " + e.getMessage());
@@ -227,7 +247,7 @@ public class Partida implements Runnable {
     }
 
     private boolean perguntarSeQuerJogarNovamente() throws IOException, InterruptedException {
-        // Lógica para reiniciar (sem alterações)
+        // Lógica para reiniciar 
         transmitirParaTodos("CONTROL|PLAY_AGAIN");
         
         int respostasContadas = 0;
@@ -252,7 +272,7 @@ public class Partida implements Runnable {
     }
     
     private void resetarPartida() throws IOException {
-        // Lógica de reset (sem alterações)
+        // Lógica de reset 
         for(ClientConnection conn : connections) {
             conn.jogador.resetarPontuacao();
         }
@@ -262,7 +282,7 @@ public class Partida implements Runnable {
     }
 
     private void exibirPlacarGeral() throws IOException {
-        // Lógica do placar (sem alterações)
+        // Lógica do placar 
         transmitirParaTodos("\n--- PLACAR ---");
         for (ClientConnection conn : connections) {
             transmitirParaTodos(conn.jogador.getNome() + ": " + conn.jogador.getPontuacao() + " ponto(s)");
@@ -271,7 +291,7 @@ public class Partida implements Runnable {
     }
     
     private void anunciarVencedorFinal() throws IOException {
-        // Lógica do vencedor (sem alterações)
+        // Lógica do vencedor 
         int maxPontos = -1;
         for (ClientConnection conn : connections) {
             maxPontos = Math.max(maxPontos, conn.jogador.getPontuacao());
@@ -295,7 +315,7 @@ public class Partida implements Runnable {
     }
 
     private void enviarMensagemParaJogador(Jogador jogador, String msg) throws IOException {
-        // Enviar mensagem (sem alterações)
+        // Enviar mensagem 
         for(ClientConnection conn : connections) {
             if(conn.jogador != null && conn.jogador.equals(jogador)) {
                 conn.saida.writeObject(msg);
@@ -306,7 +326,7 @@ public class Partida implements Runnable {
     }
 
     private void transmitirParaTodos(String msg) throws IOException {
-        // Transmitir para todos (sem alterações)
+        // Transmitir para todos 
         if(!sessaoAtiva) return;
         for (ClientConnection conn : connections) {
             try {

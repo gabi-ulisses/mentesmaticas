@@ -11,41 +11,37 @@ import org.w3c.dom.NodeList;
 import br.edu.ifsp.arq.model.Questao;
 
 /**
- * Implementação do padrão Data Access Object (DAO) para as questões do jogo.
- * Esta classe é responsável por ler e analisar (fazer o parse) do arquivo `questoes.xml`.
- * Utiliza a API DOM para carregar a estrutura hierárquica do arquivo  e transformar os
- * dados em uma lista de objetos {@link Questao}, que será usada pela classe Partida.
- * O objetivo é isolar a lógica de acesso e manipulação de arquivos  da lógica de negócio do jogo.
+ * O "bibliotecário" que sabe como ler as perguntas do arquivo questoes.xml.
+ * Ele isola a lógica de leitura de arquivos do resto do jogo.
  */
-
 public class QuestaoDAO {
-
+    // Lê o arquivo XML e retorna uma lista de objetos Questao.
     public List<Questao> carregarQuestoesDoXML(String caminhoArquivo) {
         List<Questao> questoes = new ArrayList<>();
         try {
-            //Cria um objeto File para o caminho do arquivo XML
+            // Prepara as ferramentas do Java para ler e entender o arquivo XML.
             File inputFile = new File(caminhoArquivo);
-            
-            //Configura a fábrica de parsers DOM
             DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
             
-            //Faz o parse do arquivo XML para um objeto Document (a árvore na memória)
+            // Lê o arquivo e o transforma em uma "árvore" de objetos na memória.
             Document doc = dBuilder.parse(inputFile);
             doc.getDocumentElement().normalize();
 
-            //Pega a lista de todos os nós (elementos) com a tag "questao"
+            // Pega uma lista de todos os elementos que têm a tag <questao>.
             NodeList listaDeNosQuestao = doc.getElementsByTagName("questao");
 
-            //Itera sobre cada nó de questão encontrado
+            // Passa por cada elemento <questao> que foi encontrado.
             for (int i = 0; i < listaDeNosQuestao.getLength(); i++) {
                 Element elementoQuestao = (Element) listaDeNosQuestao.item(i);
 
-                //Extrai os dados de cada elemento
+                // Extrai o texto de dentro da tag <enunciado>.
                 String enunciado = elementoQuestao.getElementsByTagName("enunciado").item(0).getTextContent();
                 int correta = Integer.parseInt(elementoQuestao.getAttribute("correta"));
-                
+
+                // Pega a lista de todas as tags <opcao> dentro da questão atual.
                 NodeList listaDeNosOpcao = elementoQuestao.getElementsByTagName("opcao");
+                // Cria um array de Strings para guardar os textos das opções.
                 String[] opcoes = new String[listaDeNosOpcao.getLength()];
                 for (int j = 0; j < listaDeNosOpcao.getLength(); j++) {
                     opcoes[j] = listaDeNosOpcao.item(j).getTextContent();
@@ -56,7 +52,7 @@ public class QuestaoDAO {
                 questoes.add(questao);
             }
         } catch (Exception e) {
-            e.printStackTrace(); //Em um projeto real, trataríamos o erro de forma mais elegante
+            e.printStackTrace(); 
         }
         return questoes;
     }
