@@ -1,23 +1,21 @@
 package br.edu.ifsp.arq.view;
 
 import br.edu.ifsp.arq.controller.JogoController;
+import br.edu.ifsp.arq.view.componentes.JPanelArredondado;
+import br.edu.ifsp.arq.view.componentes.JTextFieldArredondado;
+import br.edu.ifsp.arq.view.componentes.JLabelArredondado;
+
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.GridBagLayout;
-import java.awt.RenderingHints;
-import java.awt.Shape;
 import java.awt.event.ActionEvent;
-import java.awt.geom.RoundRectangle2D;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -30,11 +28,9 @@ import javax.swing.border.EmptyBorder;
  * É a tela principal do jogo, onde as perguntas e o placar aparecem.
  * Utiliza um CardLayout para alternar entre a tela de "Espera" e a de "Perguntas".
  */
-public class TelaJogo {
+public class TelaJogo extends Tela {
     // Referências para o controller e os componentes principais da janela.
-    private JogoController controller;
-    private JFrame frame;
-    
+    private JogoController controller;    
     // O painel que usa CardLayout para mostrar uma "tela" de cada vez.
     private JPanel painelPrincipal;
     private CardLayout cardLayout;
@@ -58,17 +54,14 @@ public class TelaJogo {
     private final String PAINEL_JOGO = "TELA_JOGO";
 
     public TelaJogo(JogoController controller) {
+        super("MentesMáticas");
         this.controller = controller;
         inicializarComponentes();
     }
     
     private void inicializarComponentes() {
         // --- Configuração da Janela Principal (JFrame) ---
-        frame = new JFrame("MentesMáticas");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(700, 700);
-        frame.setLocationRelativeTo(null);
-        frame.setLayout(new BorderLayout());
         frame.getContentPane().setBackground(new Color(214, 237, 240)); // Cor de fundo azul claro
 
         // --- PAINEL DO PLACAR (TOPO) ---
@@ -250,104 +243,24 @@ public class TelaJogo {
         labelStatusTurno.setText(texto);
     }
 
-    private void enviarAcao(ActionEvent e) { controller.enviarResposta(campoResposta.getText()); }
-    public void mostrar() { frame.setVisible(true); }
-    public void esconder() { frame.setVisible(false); }
-    public void setTitulo(String titulo) { frame.setTitle(titulo); }
-    public void atualizarContador(String texto) { lblContador.setText(texto); }
-    public void limparCampoResposta() { campoResposta.setText(""); }
-    public int mostrarDialogoReiniciar() { return JOptionPane.showConfirmDialog(frame, "A partida acabou. Desejam jogar novamente?", "Fim de Jogo", JOptionPane.YES_NO_OPTION); }
-    public void mostrarAviso(String mensagem) { JOptionPane.showMessageDialog(frame, mensagem, "Aviso", JOptionPane.INFORMATION_MESSAGE); }
-    public void desabilitarInteracao() { campoResposta.setEnabled(false); btnEnviar.setEnabled(false); }
-}
-
-
-// --- CLASSES AUXILIARES PARA COMPONENTES ARREDONDADOS ---
-
-class JPanelArredondado extends JPanel {
-    private int radius = 25;
-    private Color bgColor;
-    // Construtor padrão, usa branco se nenhuma cor for especificada.
-    public JPanelArredondado() {
-        this(Color.WHITE);
-    }
-    public JPanelArredondado(Color bgColor) {
-        super();
-        this.bgColor = bgColor;
-        setOpaque(false);
-    }
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D graphics = (Graphics2D) g;
-        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        
-        // Usa a cor que foi guardada (bgColor) para desenhar o fundo
-        graphics.setColor(bgColor);
-        graphics.fillRoundRect(0, 0, getWidth()-1, getHeight()-1, radius, radius);
-    }
-}
-
-/**
- * Classe auxiliar para criar um JTextField com cantos arredondados.
- */
-class JTextFieldArredondado extends JTextField {
-    private Shape shape;
-
-    // --- CONSTRUTOR ADICIONADO ---
-    // Este é o construtor "vazio" que estava faltando.
-    // Ele simplesmente chama o outro construtor com um valor padrão (ex: 20).
-    public JTextFieldArredondado() {
-        this(20);
-    }
-    
-    // Construtor original que recebe o tamanho.
-    public JTextFieldArredondado(int size) {
-        super(size);
-        setOpaque(false); // Deixa o fundo padrão transparente para podermos desenhar o nosso
-        setBorder(new EmptyBorder(5, 10, 5, 10)); // Adiciona uma margem interna para o texto
+    private void enviarAcao(ActionEvent e) { 
+        controller.enviarResposta(campoResposta.getText()); 
     }
 
-    protected void paintComponent(Graphics g) {
-         g.setColor(getBackground());
-         // Desenha um retângulo arredondado com a cor de fundo do componente
-         g.fillRoundRect(0, 0, getWidth()-1, getHeight()-1, 25, 25);
-         super.paintComponent(g);
+    public void atualizarContador(String texto) { 
+        lblContador.setText(texto); 
     }
-    protected void paintBorder(Graphics g) {
-         g.setColor(Color.GRAY);
-         // Desenha a borda do retângulo arredondado
-         g.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 25, 25);
-    }
-    public boolean contains(int x, int y) {
-         if (shape == null || !shape.getBounds().equals(getBounds())) {
-             shape = new RoundRectangle2D.Float(0, 0, getWidth()-1, getHeight()-1, 25, 25);
-         }
-         return shape.contains(x, y);
-    }
-}
 
-class JLabelArredondado extends JLabel {
-    private int radius = 20;
-    private Color bgColor;
-
-    public JLabelArredondado(String text, Color bgColor) {
-        super(text);
-        this.bgColor = bgColor;
-        setOpaque(false);
-        setHorizontalAlignment(SwingConstants.CENTER);
-        setFont(new Font("Arial", Font.BOLD, 14));
-        setBorder(new EmptyBorder(10, 20, 10, 20));
+    public void limparCampoResposta() { 
+        campoResposta.setText(""); 
     }
-    
-    @Override
-    protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setColor(bgColor);
-        g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
-        g2.setColor(getForeground());
-        super.paintComponent(g2);
-        g2.dispose();
+
+    public int mostrarDialogoReiniciar() { 
+        return JOptionPane.showConfirmDialog(frame, "A partida acabou. Desejam jogar novamente?", "Fim de Jogo", JOptionPane.YES_NO_OPTION); 
+    }
+
+    public void desabilitarInteracao() { 
+        campoResposta.setEnabled(false); 
+        btnEnviar.setEnabled(false); 
     }
 }

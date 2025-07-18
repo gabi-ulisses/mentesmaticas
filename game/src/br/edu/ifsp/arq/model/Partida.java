@@ -150,6 +150,7 @@ public class Partida implements Runnable {
             if(!sessaoAtiva) break;
             
             transmitirParaTodos("\n----- NOVA RODADA -----");
+            
             String[] opcoes = questao.getOpcoes();
             StringBuilder opcoesFormatadas = new StringBuilder();
             for (int i = 0; i < opcoes.length; i++) {
@@ -200,41 +201,32 @@ public class Partida implements Runnable {
                 
                 if (timerGeral != null) timerGeral.cancel();
 
-                // CÓDIGO CORRIGIDO em Partida.java
                 if (respostaRecebida != null && !respostaRecebida.textoResposta.isEmpty()) {
                     char respostaChar = respostaRecebida.textoResposta.toLowerCase().charAt(0);
-                    int respostaIndex = respostaChar - 'a';
+                    int respostaIndex = -1;
+
+                    // Validação para garantir que a resposta é uma letra válida
+                    if (respostaChar >= 'a' && respostaChar <= 'z') {
+                        respostaIndex = respostaChar - 'a';
+                    }
+
                     boolean acertou = questao.isRespostaCorreta(respostaIndex);
 
                     if (acertou) {
-                        // Adiciona o ponto ao jogador que de fato respondeu
                         respostaRecebida.jogador.adicionarPonto();
-                    }
-
-                    // Envia mensagens personalizadas para cada jogador
-                    for (ClientConnection conn : connections) {
-                        try {
-                            if (conn.jogador.equals(respostaRecebida.jogador)) {
-                                // Mensagem para o jogador que respondeu
-                                String msgParaJogadorAtivo = acertou ? "Você acertou!" : "Você errou.";
-                                conn.saida.writeObject(msgParaJogadorAtivo);
-                                conn.saida.flush();
-                            } else {
-                                // Mensagem para o jogador que estava esperando
-                                String msgParaJogadorEmEspera = acertou ? respostaRecebida.jogador.getNome() + " acertou!" : respostaRecebida.jogador.getNome() + " errou.";
-                                conn.saida.writeObject(msgParaJogadorEmEspera);
-                                conn.saida.flush();
-                            }
-                        } catch (IOException e) {
-                            System.out.println("Falha ao transmitir resultado para " + (conn.jogador != null ? conn.jogador.getNome() : "desconhecido") + ".");
-                            sessaoAtiva = false; // Se a comunicação falha, encerra a sessão.
-                        }
+                        // Transmite a mensagem de acerto para TODOS os jogadores.
+                        transmitirParaTodos("-> " + respostaRecebida.jogador.getNome() + " acertou!");
+                    } else {
+                        // Pega o texto da resposta correta (usando o método que acabamos de criar).
+                        int indiceCorreto = questao.getIndiceRespostaCorreta();
+                        String textoRespostaCorreta = questao.getOpcoes()[indiceCorreto];
+                        // Transmite a mensagem de erro E a resposta correta para TODOS.
+                        transmitirParaTodos("-> " + respostaRecebida.jogador.getNome() + " errou. A resposta correta era: " + textoRespostaCorreta);
                     }
                 } else {
-                    // A lógica de tempo esgotado continua a mesma, pois afeta a todos.
+                    // Se o tempo esgotou, transmite para TODOS.
                     transmitirParaTodos("-> " + jogadorDaVez.getNome() + " não respondeu a tempo.");
                 }
-                
             }
             exibirPlacarGeral();
             Thread.sleep(4000); 

@@ -26,6 +26,10 @@ public class Questao {
         return opcoes;
     }
 
+     public int getIndiceRespostaCorreta() {
+        return indiceRespostaCorreta;
+    }
+
     // Verifica se a opção escolhida pelo jogador é a correta.
     public boolean isRespostaCorreta(int indiceEscolhido) {
         return indiceEscolhido == this.indiceRespostaCorreta;

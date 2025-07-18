@@ -1,23 +1,19 @@
 package br.edu.ifsp.arq.view;
 
 import br.edu.ifsp.arq.controller.JogoController;
+import br.edu.ifsp.arq.view.componentes.JPanelArredondado;
+import br.edu.ifsp.arq.view.componentes.JTextFieldArredondado;
+
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.GridBagLayout;
 import java.awt.Image;
-import java.awt.RenderingHints;
-import java.awt.Shape;
-import java.awt.geom.RoundRectangle2D;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
@@ -27,23 +23,19 @@ import javax.swing.border.EmptyBorder;
  * Sua única função é pegar o nome do jogador e avisar o Controller
  * quando o botão de conectar for clicado.
  */
-public class TelaInicial {
+public class TelaInicial extends Tela{
     private JogoController controller;
-    private JFrame frame;
     private JTextField txtNome;
 
     public TelaInicial(JogoController controller) {
+        super("MentesMáticas - Login");        
         this.controller = controller;
         inicializarComponentes();
     }
 
     private void inicializarComponentes() {
-        frame = new JFrame("MentesMáticas - Login");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(400, 550); // Aumentei um pouco a altura para o botão
-        frame.setLocationRelativeTo(null);
-        frame.setResizable(false);
-        
+        frame.setSize(400, 550); 
+    
         JPanel painelPrincipal = new JPanel();
         painelPrincipal.setBackground(new Color(214, 237, 240)); 
         painelPrincipal.setLayout(new BoxLayout(painelPrincipal, BoxLayout.Y_AXIS)); 
@@ -116,75 +108,5 @@ public class TelaInicial {
         // --- Ação do Botão ---
         btnConectar.addActionListener(e -> controller.conectar(txtNome.getText()));
     }
-    
-    // ... métodos mostrar(), esconder(), mostrarAviso() ...
-    public void mostrar() { frame.setVisible(true); }
-    public void esconder() { frame.setVisible(false); }
-    public void mostrarAviso(String mensagem) { JOptionPane.showMessageDialog(frame, mensagem, "Aviso", JOptionPane.WARNING_MESSAGE); }
-}
 
-
-// --- CLASSES AUXILIARES DE DESIGN ---
-
-class JPanelArredondado extends JPanel {
-    private int radius = 25;
-    private Color bgColor;
-    // Construtor padrão, usa branco se nenhuma cor for especificada.
-    public JPanelArredondado() {
-        this(Color.WHITE);
-    }
-    public JPanelArredondado(Color bgColor) {
-        super();
-        this.bgColor = bgColor;
-        setOpaque(false);
-    }
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D graphics = (Graphics2D) g;
-        graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        
-        // Usa a cor que foi guardada (bgColor) para desenhar o fundo
-        graphics.setColor(bgColor);
-        graphics.fillRoundRect(0, 0, getWidth()-1, getHeight()-1, radius, radius);
-    }
-}
-
-/**
- * Classe auxiliar para criar um JTextField com cantos arredondados.
- */
-class JTextFieldArredondado extends JTextField {
-    private Shape shape;
-
-    // --- CONSTRUTOR ADICIONADO ---
-    // Este é o construtor "vazio" que estava faltando.
-    // Ele simplesmente chama o outro construtor com um valor padrão (ex: 20).
-    public JTextFieldArredondado() {
-        this(20);
-    }
-    
-    // Construtor original que recebe o tamanho.
-    public JTextFieldArredondado(int size) {
-        super(size);
-        setOpaque(false); // Deixa o fundo padrão transparente para podermos desenhar o nosso
-        setBorder(new EmptyBorder(5, 10, 5, 10)); // Adiciona uma margem interna para o texto
-    }
-
-    protected void paintComponent(Graphics g) {
-         g.setColor(getBackground());
-         // Desenha um retângulo arredondado com a cor de fundo do componente
-         g.fillRoundRect(0, 0, getWidth()-1, getHeight()-1, 25, 25);
-         super.paintComponent(g);
-    }
-    protected void paintBorder(Graphics g) {
-         g.setColor(Color.GRAY);
-         // Desenha a borda do retângulo arredondado
-         g.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 25, 25);
-    }
-    public boolean contains(int x, int y) {
-         if (shape == null || !shape.getBounds().equals(getBounds())) {
-             shape = new RoundRectangle2D.Float(0, 0, getWidth()-1, getHeight()-1, 25, 25);
-         }
-         return shape.contains(x, y);
-    }
 }
