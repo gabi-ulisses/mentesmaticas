@@ -1,386 +1,365 @@
 package br.edu.ifsp.arq.model;
 
 import br.edu.ifsp.arq.dao.QuestaoDAO;
+import br.edu.ifsp.arq.model.mensagens.Mensagem;
+import br.edu.ifsp.arq.model.mensagens.MensagemControle;
+import br.edu.ifsp.arq.model.mensagens.MensagemPergunta;
+import br.edu.ifsp.arq.model.mensagens.MensagemPlacar;
+import br.edu.ifsp.arq.model.mensagens.MensagemStatus;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 /**
  * É o "Mestre do Jogo". Controla uma partida completa para uma dupla de jogadores.
- * Roda em seu próprio "trabalho" (Thread) para não travar o servidor principal.
+ * Roda em sua própria "trabalho" (Thread) para não travar o servidor principal.
  */
 public class Partida implements Runnable {
 
-    // Constante para definir o tempo de resposta em segundos para cada turno.
+    // Atributos da Classe 
+    
     private static final int TEMPO_POR_RODADA_SEGUNDOS = 60;
 
     private List<Questao> questoes;
-    // Lista para guardar as informações de conexão de cada jogador.
-    private final List<ClientConnection> connections;
-    // "volatile" garante que as outras threads sempre vejam o valor mais atual desta variável.
-    private volatile boolean sessaoAtiva;
-    private volatile boolean partidaEmAndamento;
-    private Timer timerGeral; 
+    private final List<Jogador> jogadores = new ArrayList<>();
 
-    // Fila para as RESPOSTAS das perguntas.
-    private final BlockingQueue<RespostaJogador> filaDeRespostas = new LinkedBlockingQueue<>();
-    // Fila para os COMANDOS dos jogadores.
-    private final BlockingQueue<ComandoJogador> filaDeComandos = new LinkedBlockingQueue<>();
-
-    // Classe interna para agrupar tudo relacionado a um jogador
-    private static class ClientConnection {
-        final ObjectInputStream entrada;
-        final ObjectOutputStream saida;
-        Jogador jogador;
-
-        ClientConnection(ObjectInputStream in, ObjectOutputStream out) {
-            this.entrada = in;
-            this.saida = out;
-        }
-    }
+    // Atributos de cada jogador
+    private Jogador jogador1;
+    private Jogador jogador2;
+    private ObjectInputStream entrada1;
+    private ObjectOutputStream saida1;
+    private ObjectInputStream entrada2;
+    private ObjectOutputStream saida2;
     
-    // Classe interna para agrupar o jogador e um comando que ele enviou.
-    private static class ComandoJogador {
-        final Jogador jogador;
-        final String comando;
+    // Atributos de controle de estado do jogo
+    private boolean sessaoAtiva;
+    private boolean partidaEmAndamento;
+    private Timer timerGeral;
+    
+    // Atributos para comunicação entre as Threads
+    private final Object trava = new Object(); 
+    private RespostaJogador ultimaRespostaRecebida;
+    private String ultimoComandoRecebido;
+    private Jogador autorDoUltimoComando;
 
-        ComandoJogador(Jogador jogador, String comando) {
-            this.jogador = jogador;
-            this.comando = comando;
-        }
-    }
+    // Construtor 
 
-    // Prepara o objeto Partida com as conexões dos dois jogadores.
     public Partida(ObjectInputStream entrada1, ObjectOutputStream saida1, ObjectInputStream entrada2, ObjectOutputStream saida2) {
         this.questoes = new ArrayList<>();
-        this.connections = new ArrayList<>();
-        // Adiciona as duas conexões à lista para serem configuradas depois.
-        this.connections.add(new ClientConnection(entrada1, saida1));
-        this.connections.add(new ClientConnection(entrada2, saida2));
+        this.entrada1 = entrada1;
+        this.saida1 = saida1;
+        this.entrada2 = entrada2;
+        this.saida2 = saida2;
     }
+
+    // Métodos Principais (Ciclo de Vida da Thread) 
 
     @Override
     public void run() {
         try {
             this.sessaoAtiva = true;
-            // Pega os nomes dos jogadores.
             configurarJogadores();
-            // Ordena a lista de conexões com base no nome do jogador em ordem alfabética.
-            connections.sort(Comparator.comparing(c -> c.jogador.getNome(), String.CASE_INSENSITIVE_ORDER));
+            exibirPlacarGeral(); 
+            iniciarOuvintes();
 
-            // Inicia as threads ouvintes, um para cada jogador.
-            for (ClientConnection conn : connections) {
-                iniciarOuvinte(conn);
-            }
-            
             boolean jogarNovamente = true;
-            while(jogarNovamente && sessaoAtiva) {
+            while (jogarNovamente && sessaoAtiva) {
                 partidaEmAndamento = true;
                 jogar();
                 partidaEmAndamento = false;
 
-                // Se a sessão ainda estiver ativa, pergunta se querem jogar de novo.
                 if (sessaoAtiva) {
                     jogarNovamente = perguntarSeQuerJogarNovamente();
-                    if(jogarNovamente) { // Se ambos disserem sim, reseta o jogo.
+                    if (jogarNovamente) {
                         resetarPartida();
                     }
                 }
             }
-
         } catch (Exception e) {
             System.err.println("Sessão encerrada por erro crítico: " + e.getMessage());
+            e.printStackTrace();
         } finally {
-            this.sessaoAtiva = false;
-            encerrarConexoes(); // Garante que as conexões sejam fechadas.
+            encerrarSessao();
         }
     }
 
-    // Obtém o nome de cada jogador, enviado pelo cliente, um de cada vez.
-    private void configurarJogadores() throws IOException, ClassNotFoundException {
-
-        for (ClientConnection conn : connections) {
-            conn.saida.writeObject("Bem-vindo ao Mentes Máticas!\n\n Regras do Jogo: \n     1. A ordem de jogadas é definida pelo nome do jogador, em ordem alfabética.\n       2. Cada jogador tem 60 segundos para responder cada pergunta.\n         3. As respostas válidas são as letras das opções apresentadas.\n        4. Respostas corretas valem 1 ponto.\n      5. O jogo termina quando todas as perguntas forem respondidas ou se um jogador desconectar.\n\n");
-            String nome = (String) conn.entrada.readObject();
-            conn.jogador = new Jogador(nome);
-            System.out.println("Jogador '" + nome + "' configurado.");
-        }
-    }
-
-    // Cria uma thread "ouvinte" para cada jogador.
-    private void iniciarOuvinte(ClientConnection conn) {
-        new Thread(() -> {
-            while (sessaoAtiva) {
-                try {
-                    // Fica esperando por uma mensagem do jogador.
-                    String mensagem = (String) conn.entrada.readObject();
-                    // Decide se a mensagem é um comando ou uma resposta.
-                    if (mensagem.startsWith("CMD|")) {
-                        filaDeComandos.put(new ComandoJogador(conn.jogador, mensagem.substring(4)));
-                    } else if (partidaEmAndamento) {
-                        // Se der erro (ex: jogador desconectou), encerra a sessão.
-                        filaDeRespostas.put(new RespostaJogador(conn.jogador, mensagem));
-                    }
-                } catch (IOException | ClassNotFoundException | InterruptedException e) {
-                    System.out.println("Ouvinte para " + (conn.jogador != null ? conn.jogador.getNome() : "desconhecido") + " encerrado. A sessão terminará.");
-                    sessaoAtiva = false; 
-                }
-            }
-        }).start();
-    }
-
-    // Contém a lógica de uma partida completa, com todas as suas rodadas.
     private void jogar() throws IOException, InterruptedException {
-        transmitirParaTodos("CONTROL|START_GAME");
-        transmitirParaTodos("Todos os jogadores estão conectados e ordenados.");
-        transmitirParaTodos("A partida vai começar!");
+        transmitirParaTodos(new MensagemControle(MensagemControle.Tipo.INICIAR_JOGO, null));
+        transmitirParaTodos(new MensagemStatus("Todos os jogadores estão conectados e ordenados."));
+        transmitirParaTodos(new MensagemStatus("A partida vai começar!"));
         carregarQuestoes();
 
-        // Loop principal para cada questão (rodada).
         for (Questao questao : questoes) {
-            if(!sessaoAtiva) break;
-            
-            transmitirParaTodos("\n----- NOVA RODADA -----");
-            
-            String[] opcoes = questao.getOpcoes();
-            StringBuilder opcoesFormatadas = new StringBuilder();
-            for (int i = 0; i < opcoes.length; i++) {
-                // Apenas anexa a opção, sem a letra. O cliente irá formatar.
-                opcoesFormatadas.append(opcoes[i]); 
-                if (i < opcoes.length - 1) {
-                    opcoesFormatadas.append(";"); // Usa ; como separador de opções
-                }
-            }
-            
-            String perguntaMsg = String.format("PERGUNTA|%s|%s", questao.getEnunciado(), opcoesFormatadas.toString());
-            transmitirParaTodos(perguntaMsg);
-            
-            filaDeRespostas.clear();
-            // Loop para o turno de cada jogador.
-            for (ClientConnection connDaVez : connections) {
-                if(!sessaoAtiva) break;
-                
-                Jogador jogadorDaVez = connDaVez.jogador;
-                
-                enviarMensagemParaJogador(jogadorDaVez, "PROMPT|Sua vez, " + jogadorDaVez.getNome() + "! Resposta: ");
-                for (ClientConnection outraConn : connections) {
-                    if (!outraConn.jogador.equals(jogadorDaVez)) {
-                        enviarMensagemParaJogador(outraConn.jogador, "Aguarde a vez de " + jogadorDaVez.getNome() + "...");
-                    }
-                }
-                
-                // Inicia o timer da rodada
-                iniciarTimerRodada(jogadorDaVez);
-                
-                RespostaJogador respostaRecebida = null;
-                // Espera por uma resposta por no máximo o tempo da rodada + 2 segundos de margem
-                while (partidaEmAndamento) {
-                    RespostaJogador r = filaDeRespostas.poll(TEMPO_POR_RODADA_SEGUNDOS + 2, TimeUnit.SECONDS);
+            if (!sessaoAtiva) break;
+            transmitirParaTodos(new MensagemStatus("\nNOVA RODADA"));
 
-                    if (r == null) { // Timeout ou a partida acabou
-                        break; 
-                    }
-                    
-                    if (r.jogador.equals(jogadorDaVez)) {
-                        respostaRecebida = r;
-                        if (timerGeral != null) timerGeral.cancel(); // Para o timer assim que a resposta certa chega
-                        break; 
-                    } else {
-                        enviarMensagemParaJogador(r.jogador, "Aviso: Não é a sua vez de responder.");
+            List<String> opcoesLista = Arrays.asList(questao.getOpcoes());
+            transmitirParaTodos(new MensagemPergunta(questao.getEnunciado(), opcoesLista));
+
+            for (Jogador jogadorDaVez : jogadores) {
+                if (!sessaoAtiva) break;
+
+                Jogador outroJogador = (jogadorDaVez.equals(jogador1)) ? jogador2 : jogador1;
+                enviarMensagemParaJogador(jogadorDaVez, new MensagemControle(MensagemControle.Tipo.SOLICITAR_RESPOSTA, "Sua vez, " + jogadorDaVez.getNome() + "! Responda:"));
+                enviarMensagemParaJogador(outroJogador, new MensagemControle(MensagemControle.Tipo.AGUARDAR_OPONENTE, "Aguarde a vez de " + jogadorDaVez.getNome() + "..."));
+
+                iniciarTimerRodada();
+
+                long tempoLimite = System.currentTimeMillis() + (TEMPO_POR_RODADA_SEGUNDOS * 1000);
+                RespostaJogador respostaProcessada = null;
+
+                synchronized (trava) {
+                    while (System.currentTimeMillis() < tempoLimite && sessaoAtiva && respostaProcessada == null) {
+                        trava.wait(tempoLimite - System.currentTimeMillis());
+                        
+                        if (ultimaRespostaRecebida != null) {
+                            if (ultimaRespostaRecebida.jogador.equals(jogadorDaVez)) {
+                                respostaProcessada = ultimaRespostaRecebida;
+                                ultimaRespostaRecebida = null;
+                            } else {
+                                enviarMensagemParaJogador(ultimaRespostaRecebida.jogador, new MensagemStatus("Aviso: Não é a sua vez de responder."));
+                                ultimaRespostaRecebida = null;
+                            }
+                        }
                     }
                 }
                 
                 if (timerGeral != null) timerGeral.cancel();
 
-                if (respostaRecebida != null && !respostaRecebida.textoResposta.isEmpty()) {
-                    char respostaChar = respostaRecebida.textoResposta.toLowerCase().charAt(0);
-                    int respostaIndex = -1;
+                // Lógica de feedback PRIVADO
+                if (respostaProcessada != null && !respostaProcessada.textoResposta.isEmpty()) {
+                    char respostaChar = respostaProcessada.textoResposta.toLowerCase().charAt(0);
+                    int respostaIndex = (respostaChar >= 'a' && respostaChar <= 'z') ? respostaChar - 'a' : -1;
 
-                    // Validação para garantir que a resposta é uma letra válida
-                    if (respostaChar >= 'a' && respostaChar <= 'z') {
-                        respostaIndex = respostaChar - 'a';
-                    }
-
-                    boolean acertou = questao.isRespostaCorreta(respostaIndex);
-
-                    if (acertou) {
-                        respostaRecebida.jogador.adicionarPonto();
-                        // Transmite a mensagem de acerto para TODOS os jogadores.
-                        transmitirParaTodos("-> " + respostaRecebida.jogador.getNome() + " acertou!");
+                    if (questao.isRespostaCorreta(respostaIndex)) {
+                        jogadorDaVez.adicionarPonto();
+                        // Envia o feedback apenas para o jogador que respondeu.
+                        enviarMensagemParaJogador(jogadorDaVez, new MensagemStatus("Você acertou!"));
                     } else {
-                        // Pega o texto da resposta correta (usando o método que acabamos de criar).
-                        int indiceCorreto = questao.getIndiceRespostaCorreta();
-                        String textoRespostaCorreta = questao.getOpcoes()[indiceCorreto];
-                        // Transmite a mensagem de erro E a resposta correta para TODOS.
-                        transmitirParaTodos("-> " + respostaRecebida.jogador.getNome() + " errou. A resposta correta era: " + textoRespostaCorreta);
+                        // Envia o feedback apenas para o jogador que respondeu.
+                        enviarMensagemParaJogador(jogadorDaVez, new MensagemStatus("Você errou."));
                     }
                 } else {
-                    // Se o tempo esgotou, transmite para TODOS.
-                    transmitirParaTodos("-> " + jogadorDaVez.getNome() + " não respondeu a tempo.");
+                    // O aviso de tempo esgotado é público.
+                    transmitirParaTodos(new MensagemStatus("-> " + jogadorDaVez.getNome() + " não respondeu a tempo."));
                 }
+                
+                // Pausa para dar um ritmo ao jogo entre os turnos.
+                Thread.sleep(1500); 
             }
+
+            // Revela a resposta correta para TODOS.
+            int indiceCorreto = questao.getIndiceRespostaCorreta();
+            String textoRespostaCorreta = questao.getOpcoes()[indiceCorreto];
+            transmitirParaTodos(new MensagemStatus("A resposta correta era: " + textoRespostaCorreta));
+            
+            // Pausa para que todos possam ler a resposta correta.
+            Thread.sleep(2000);
+
             exibirPlacarGeral();
-            Thread.sleep(4000); 
+            
+            // Pausa maior para que todos possam ver o placar atualizado.
+            Thread.sleep(3000);
         }
-        
-        if(sessaoAtiva) {
+
+        if (sessaoAtiva) {
             anunciarVencedorFinal();
         }
     }
 
-    // Inicia um contador regressivo para a rodada.
-    private void iniciarTimerRodada(Jogador jogadorDaVez) {
-        if(timerGeral != null) timerGeral.cancel();
-        timerGeral = new Timer();
-        
-        // Usamos um array de 1 elemento para que possa ser modificado dentro da classe anônima
-        final int[] tempoRestante = {TEMPO_POR_RODADA_SEGUNDOS};
+    // Métodos de Configuração e Preparação 
 
-        timerGeral.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
+    private void configurarJogadores() throws IOException, ClassNotFoundException {
+        String welcomeMessage = "Bem-vindo ao Mentes Máticas!\n\nRegras do Jogo: \n"+
+                                "   1. A ordem de jogadas é definida pelo nome do jogador, em ordem alfabética.\n"+
+                                "   2. Cada jogador tem 60 segundos para responder cada pergunta.\n"+
+                                "   3. As respostas válidas são as letras das opções apresentadas.\n"+
+                                "   4. Respostas corretas valem 1 ponto.\n"+
+                                "   5. O jogo termina quando todas as perguntas forem respondidas ou se um jogador desconectar.\n\n";
+
+        saida1.writeObject(new MensagemStatus(welcomeMessage));
+        String nome1 = (String) entrada1.readObject();
+        this.jogador1 = new Jogador(nome1);
+        System.out.println("Jogador 1 '" + nome1 + "' configurado.");
+
+        saida2.writeObject(new MensagemStatus(welcomeMessage));
+        String nome2 = (String) entrada2.readObject();
+        this.jogador2 = new Jogador(nome2);
+        System.out.println("Jogador 2 '" + nome2 + "' configurado.");
+
+        jogadores.add(jogador1);
+        jogadores.add(jogador2);
+        jogadores.sort((j1, j2) -> j1.getNome().compareToIgnoreCase(j2.getNome()));
+        
+        this.jogador1 = jogadores.get(0);
+        this.jogador2 = jogadores.get(1);
+    }
+    
+    private void iniciarOuvintes() {
+        iniciarOuvinte(jogador1, entrada1);
+        iniciarOuvinte(jogador2, entrada2);
+    }
+
+    private void iniciarOuvinte(Jogador jogador, ObjectInputStream entrada) {
+        new Thread(() -> {
+            while (sessaoAtiva) {
                 try {
-                    if (tempoRestante[0] > 0) {
-                        transmitirParaTodos("TIMER|" + tempoRestante[0]);
-                        tempoRestante[0]--;
-                    } else {
-                        // Tempo esgotado
-                        transmitirParaTodos("TIMER|0");
-                        enviarMensagemParaJogador(jogadorDaVez, "Tempo esgotado! Você não respondeu a tempo.");
-                        transmitirParaTodos(jogadorDaVez.getNome() + " não respondeu a tempo.");
-                        // A mensagem de "não respondeu a tempo" agora será tratada pelo método jogar().
-                        cancel(); 
+                    Object objetoRecebido = entrada.readObject();
+                    if (objetoRecebido instanceof String) {
+                        String mensagemTexto = (String) objetoRecebido;
+                        processarMensagemDeTexto(jogador, mensagemTexto);
                     }
-                } catch(IOException e) {
-                    System.err.println("Erro ao transmitir tempo: " + e.getMessage());
-                    cancel();
+                } catch (IOException | ClassNotFoundException e) {
+                    if (sessaoAtiva) {
+                        System.out.println("Conexão com " + jogador.getNome() + " perdida. A sessão terminará.");
+                        sessaoAtiva = false;
+                        synchronized(trava) {
+                            trava.notifyAll();
+                        }
+                    }
                 }
             }
-        }, 0, 1000); // Inicia imediatamente, repete a cada 1 segundo
-    }
-
-    private boolean perguntarSeQuerJogarNovamente() throws IOException, InterruptedException {
-        // Lógica para reiniciar 
-        transmitirParaTodos("CONTROL|PLAY_AGAIN");
-        
-        int respostasContadas = 0;
-        int votosSim = 0;
-        filaDeComandos.clear();
-        
-        while(sessaoAtiva && respostasContadas < connections.size()) {
-            ComandoJogador cmd = filaDeComandos.poll(30, TimeUnit.SECONDS);
-            
-            if (cmd == null) { 
-                System.out.println("Timeout esperando resposta para reiniciar. Encerrando.");
-                return false;
-            }
-            
-            if(cmd.comando.equals("RESTART_YES")) {
-                votosSim++;
-            }
-            respostasContadas++;
-        }
-        
-        return votosSim == connections.size();
-    }
-    
-    private void resetarPartida() throws IOException {
-        // Lógica de reset 
-        for(ClientConnection conn : connections) {
-            conn.jogador.resetarPontuacao();
-        }
-        filaDeRespostas.clear();
-        filaDeComandos.clear();
-        transmitirParaTodos("\n--- REINICIANDO PARTIDA ---");
-    }
-
-    private void exibirPlacarGeral() throws IOException {
-        // Monta a mensagem de placar no formato que o Controller espera.
-        // Ex: "PLACAR|Ana;1;Gabrielle;0"
-        String placarMsg = String.format("PLACAR|%s;%d;%s;%d",
-            connections.get(0).jogador.getNome(), connections.get(0).jogador.getPontuacao(),
-            connections.get(1).jogador.getNome(), connections.get(1).jogador.getPontuacao()
-        );
-        transmitirParaTodos(placarMsg);
-    }
-    
-    private void anunciarVencedorFinal() throws IOException {
-        // Lógica do vencedor 
-        int maxPontos = -1;
-        for (ClientConnection conn : connections) {
-            maxPontos = Math.max(maxPontos, conn.jogador.getPontuacao());
-        }
-        
-        List<Jogador> vencedores = new ArrayList<>();
-        for (ClientConnection conn : connections) {
-            if (conn.jogador.getPontuacao() == maxPontos) {
-                vencedores.add(conn.jogador);
-            }
-        }
-        
-        transmitirParaTodos("\n----- FIM DE JOGO -----");
-        if (vencedores.size() > 1) {
-            transmitirParaTodos("Houve um empate entre os finalistas com " + maxPontos + " pontos!");
-        } else if (!vencedores.isEmpty()){
-            transmitirParaTodos("O grande vencedor é: " + vencedores.get(0).getNome() + " com " + maxPontos + " pontos!");
-        } else {
-            transmitirParaTodos("Fim de jogo. Ninguém pontuou.");
-        }
-    }
-
-    private void enviarMensagemParaJogador(Jogador jogador, String msg) throws IOException {
-        for(ClientConnection conn : connections) {
-            if(conn.jogador != null && conn.jogador.equals(jogador)) {
-                // Se a mensagem não for um prompt, o controller a tratará como status de turno
-                if(!msg.startsWith("PROMPT|")) {
-                    conn.saida.writeObject("TURNO|" + msg);
-                } else {
-                    conn.saida.writeObject(msg);
-                }
-                conn.saida.flush();
-                return;
-            }
-        }
-    }
-
-    private void transmitirParaTodos(String msg) throws IOException {
-        // Transmitir para todos 
-        if(!sessaoAtiva) return;
-        for (ClientConnection conn : connections) {
-            try {
-                conn.saida.writeObject(msg);
-                conn.saida.flush();
-            } catch (IOException e) {
-                System.out.println("Falha ao transmitir para " + (conn.jogador != null ? conn.jogador.getNome() : "desconhecido") + ". Removendo.");
-                sessaoAtiva = false; // Se uma escrita falha, a conexão provavelmente caiu.
-            }
-        }
+        }).start();
     }
     
     private void carregarQuestoes() {
         QuestaoDAO dao = new QuestaoDAO();
         this.questoes = dao.carregarQuestoesDoXML("questoes.xml");
-        Collections.shuffle(this.questoes); // Embaralha as questões a cada nova partida
+        Collections.shuffle(this.questoes);
+    }
+
+    // Métodos de Processamento e Lógica do Jogo 
+
+    private void processarMensagemDeTexto(Jogador autor, String mensagem) {
+        synchronized (trava) {
+            if (mensagem.equals("JOGAR_NOVAMENTE_SIM")) {
+                this.ultimoComandoRecebido = mensagem;
+                this.autorDoUltimoComando = autor;
+            } else if (partidaEmAndamento) {
+                this.ultimaRespostaRecebida = new RespostaJogador(autor, mensagem);
+            }
+            trava.notifyAll();
+        }
+    }
+
+    private boolean perguntarSeQuerJogarNovamente() throws IOException, InterruptedException {
+        transmitirParaTodos(new MensagemControle(MensagemControle.Tipo.JOGAR_NOVAMENTE, null));
+        int votosSim = 0;
+        int respostasContadas = 0;
+        long tempoLimite = System.currentTimeMillis() + 30000;
+        
+        while (respostasContadas < 2 && System.currentTimeMillis() < tempoLimite && sessaoAtiva) {
+            synchronized (trava) {
+                ultimoComandoRecebido = null;
+                autorDoUltimoComando = null;
+                trava.wait(tempoLimite - System.currentTimeMillis());
+
+                if (ultimoComandoRecebido != null && ultimoComandoRecebido.equals("JOGAR_NOVAMENTE_SIM")) {
+                    votosSim++;
+                }
+                // Se um comando (qualquer um) foi recebido, conta como resposta.
+                if (autorDoUltimoComando != null) {
+                    respostasContadas++;
+                }
+            }
+        }
+        return votosSim == 2;
     }
     
-    private void encerrarConexoes() {
-        if(timerGeral != null) timerGeral.cancel();
-        
-        try { transmitirParaTodos("CONTROL|SESSION_END"); } catch (IOException e) {}
-        
-        for(ClientConnection conn : connections) {
-            try { conn.saida.close(); } catch (IOException e) {}
-            try { conn.entrada.close(); } catch (IOException e) {}
+    private void resetarPartida() throws IOException {
+        for (Jogador jogador : jogadores) {
+            jogador.resetarPontuacao();
         }
+        this.ultimaRespostaRecebida = null;
+        this.ultimoComandoRecebido = null;
+        this.autorDoUltimoComando = null;
+        transmitirParaTodos(new MensagemStatus("\nREINICIANDO PARTIDA "));
+    }
+
+    private void anunciarVencedorFinal() throws IOException {
+        transmitirParaTodos(new MensagemStatus("\nFIM DE JOGO"));
+        
+        if (jogador1.getPontuacao() == jogador2.getPontuacao()) {
+            transmitirParaTodos(new MensagemStatus("Houve um empate com " + jogador1.getPontuacao() + " pontos!"));
+        } else if (jogador1.getPontuacao() > jogador2.getPontuacao()) {
+            transmitirParaTodos(new MensagemStatus("O grande vencedor é: " + jogador1.getNome() + " com " + jogador1.getPontuacao() + " pontos!"));
+        } else {
+            transmitirParaTodos(new MensagemStatus("O grande vencedor é: " + jogador2.getNome() + " com " + jogador2.getPontuacao() + " pontos!"));
+        }
+    }
+    
+    private void exibirPlacarGeral() throws IOException {
+        Map<String, Integer> placares = new HashMap<>();
+        for (Jogador jogador : jogadores) {
+            placares.put(jogador.getNome(), jogador.getPontuacao());
+        }
+        transmitirParaTodos(new MensagemPlacar(placares));
+    }
+    
+    private void iniciarTimerRodada() {
+        if (timerGeral != null) timerGeral.cancel();
+        timerGeral = new Timer();
+        final int[] tempoRestante = {TEMPO_POR_RODADA_SEGUNDOS};
+
+        timerGeral.scheduleAtFixedRate(new TimerTask() {
+            public void run() {
+                try {
+                    if (tempoRestante[0] >= 0 && partidaEmAndamento && sessaoAtiva) {
+                        transmitirParaTodos(new MensagemControle(MensagemControle.Tipo.ATUALIZAR_TIMER, tempoRestante[0]));
+                        tempoRestante[0]--;
+                    } else {
+                        cancel();
+                    }
+                } catch (IOException e) {
+                    cancel();
+                }
+            }
+        }, 0, 1000);
+    }
+    
+    // Métodos de Comunicação (Rede) 
+
+    private void enviarMensagemParaJogador(Jogador jogador, Mensagem mensagem) throws IOException {
+        if (!sessaoAtiva) return;
+        ObjectOutputStream saida = (jogador.equals(jogador1)) ? saida1 : saida2;
+        try {
+            saida.writeObject(mensagem);
+            saida.flush();
+        } catch (IOException e) {
+            if(sessaoAtiva) System.out.println("Falha ao enviar mensagem para " + jogador.getNome() + ".");
+            sessaoAtiva = false;
+        }
+    }
+
+    private void transmitirParaTodos(Mensagem mensagem) throws IOException {
+        enviarMensagemParaJogador(jogador1, mensagem);
+        enviarMensagemParaJogador(jogador2, mensagem);
+    }
+    
+    private void encerrarSessao() {
+        this.sessaoAtiva = false;
+        if (timerGeral != null) timerGeral.cancel();
+        
+        System.out.println("Encerrando sessão...");
+        try {
+            transmitirParaTodos(new MensagemControle(MensagemControle.Tipo.FIM_DE_SESSAO, null));
+        } catch (IOException e) {
+            // Ignora erros aqui, pois já estamos encerrando.
+        }
+        
+        try { if (saida1 != null) saida1.close(); } catch (IOException e) {}
+        try { if (entrada1 != null) entrada1.close(); } catch (IOException e) {}
+        try { if (saida2 != null) saida2.close(); } catch (IOException e) {}
+        try { if (entrada2 != null) entrada2.close(); } catch (IOException e) {}
         System.out.println("Sessão finalizada e conexões encerradas.");
     }
 }

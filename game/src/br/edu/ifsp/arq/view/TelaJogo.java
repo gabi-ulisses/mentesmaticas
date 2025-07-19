@@ -2,7 +2,6 @@ package br.edu.ifsp.arq.view;
 
 import br.edu.ifsp.arq.controller.JogoController;
 import br.edu.ifsp.arq.view.componentes.JPanelArredondado;
-import br.edu.ifsp.arq.view.componentes.JTextFieldArredondado;
 import br.edu.ifsp.arq.view.componentes.JLabelArredondado;
 
 import java.awt.BorderLayout;
@@ -13,6 +12,8 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
+import java.util.Map;
+
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -29,29 +30,32 @@ import javax.swing.border.EmptyBorder;
  * Utiliza um CardLayout para alternar entre a tela de "Espera" e a de "Perguntas".
  */
 public class TelaJogo extends Tela {
-    // Referências para o controller e os componentes principais da janela.
+    // --- Atributos ---
+    
+    // Referências externas e de layout
     private JogoController controller;    
-    // O painel que usa CardLayout para mostrar uma "tela" de cada vez.
     private JPanel painelPrincipal;
     private CardLayout cardLayout;
     
-    // Componentes do placar, visíveis em ambas as telas.
+    // Componentes da UI (Placar)
     private JLabel labelPlacar1;
     private JLabel labelPlacar2;
     
-    // Componentes da tela de espera.
+    // Componentes da UI (Painel de Espera)
     private JLabel labelBemVindo;
 
-    // Componentes da tela de perguntas.
+    // Componentes da UI (Painel de Jogo)
     private JTextArea areaLogPerguntas;
     private JTextField campoResposta;
     private JButton btnEnviar;
     private JLabel lblContador;
     private JLabel labelStatusTurno;
 
-    // Constantes para identificar os painéis no CardLayout.
+    // Constantes para o CardLayout
     private final String PAINEL_ESPERA = "TELA_ESPERA";
     private final String PAINEL_JOGO = "TELA_JOGO";
+
+    // --- Construtor ---
 
     public TelaJogo(JogoController controller) {
         super("MentesMáticas");
@@ -59,36 +63,35 @@ public class TelaJogo extends Tela {
         inicializarComponentes();
     }
     
+    // --- Métodos de Inicialização da UI (Chamados pelo Construtor) ---
+    
     private void inicializarComponentes() {
-        // --- Configuração da Janela Principal (JFrame) ---
+        // Configuração da Janela Principal (JFrame) 
         frame.setSize(700, 700);
-        frame.getContentPane().setBackground(new Color(214, 237, 240)); // Cor de fundo azul claro
+        frame.getContentPane().setBackground(new Color(214, 237, 240));
 
-        // --- PAINEL DO PLACAR (TOPO) ---
+        // PAINEL DO PLACAR (TOPO) 
         JPanel painelPlacarContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 50, 20));
-        painelPlacarContainer.setOpaque(false); // Fundo transparente.
+        painelPlacarContainer.setOpaque(false);
         labelPlacar1 = new JLabelArredondado("Jogador 1: 0 pontos", new Color(255, 235, 156));
         labelPlacar2 = new JLabelArredondado("Jogador 2: 0 pontos", new Color(255, 235, 156));
         painelPlacarContainer.add(labelPlacar1);
         painelPlacarContainer.add(labelPlacar2);
         frame.add(painelPlacarContainer, BorderLayout.NORTH);
         
-        // --- PAINEL PRINCIPAL COM CARDLAYOUT (CENTRO) ---
+        // PAINEL PRINCIPAL COM CARDLAYOUT (CENTRO) 
         cardLayout = new CardLayout();
         painelPrincipal = new JPanel(cardLayout);
         painelPrincipal.setOpaque(false);
         
-        // --- CRIA E ADICIONA O PAINEL DE ESPERA (IMAGEM 3.PNG) ---
         JPanel painelEspera = criarPainelEspera();
         painelPrincipal.add(painelEspera, PAINEL_ESPERA);
         
-        // --- CRIA E ADICIONA O PAINEL DE PERGUNTAS (IMAGEM 2.PNG) ---
         JPanel painelJogo = criarPainelJogo();
         painelPrincipal.add(painelJogo, PAINEL_JOGO);
 
         frame.add(painelPrincipal, BorderLayout.CENTER);
         
-        // O jogo começa mostrando a tela de espera.
         cardLayout.show(painelPrincipal, PAINEL_ESPERA);
     }
     
@@ -118,6 +121,7 @@ public class TelaJogo extends Tela {
             "5. O jogo termina quando todas as perguntas forem respondidas ou se um jogador desconectar."
         );
         textoRegras.setEditable(false);
+        textoRegras.setFocusable(false);
         textoRegras.setOpaque(false);
         textoRegras.setFont(new Font("Arial", Font.PLAIN, 14));
         textoRegras.setLineWrap(true);
@@ -138,6 +142,15 @@ public class TelaJogo extends Tela {
         return painel;
     }
     
+    public void habilitarInteracao(boolean habilitar) {
+        campoResposta.setEnabled(habilitar);
+        btnEnviar.setEnabled(habilitar);
+
+        // Melhoria de usabilidade: se habilitar, o cursor já vai para o campo de texto.
+        if (habilitar) {
+            campoResposta.requestFocusInWindow();
+        }
+    }
     // Método que monta a tela principal, com as perguntas.
     private JPanel criarPainelJogo() {
         JPanel painelExterno = new JPanel(new BorderLayout());
@@ -163,28 +176,27 @@ public class TelaJogo extends Tela {
         labelStatusTurno.setFont(new Font("Arial", Font.BOLD, 16));
         labelStatusTurno.setBorder(new EmptyBorder(20, 0, 20, 0));
         
-        JPanel painelInputContainer = new JPanel(new BorderLayout(10, 0));
-        painelInputContainer.setOpaque(false);
-        
-        JTextFieldArredondado painelInput = new JTextFieldArredondado();
-        painelInput.setLayout(new BorderLayout(10, 0));
-        painelInput.setBorder(new EmptyBorder(5, 10, 5, 10));
-        painelInput.setBackground(Color.WHITE);
-        
-        campoResposta = new JTextField();
-        campoResposta.setBorder(null); 
-        campoResposta.setFont(new Font("Arial", Font.PLAIN, 16));
-        
-        btnEnviar = new JButton("Enviar");
+        JPanel painelInput = new JPanel();
+        painelInput.setLayout(new BoxLayout(painelInput, BoxLayout.X_AXIS)); // Usamos BoxLayout horizontal
+        painelInput.setOpaque(false);
+
         lblContador = new JLabel("--", SwingConstants.CENTER);
         lblContador.setFont(new Font("Arial", Font.BOLD, 20));
+        lblContador.setPreferredSize(new Dimension(40, 30)); // Tamanho fixo para não quebrar o layout
+
+        campoResposta = new JTextField();
+        campoResposta.setFont(new Font("Arial", Font.PLAIN, 16));
         
-        painelInput.add(lblContador, BorderLayout.WEST);
-        painelInput.add(campoResposta, BorderLayout.CENTER);
+        painelInput.add(lblContador);
+        painelInput.add(Box.createRigidArea(new Dimension(10, 0))); // Um espaço fixo entre eles
+        painelInput.add(campoResposta);
         
+        JPanel painelInputContainer = new JPanel(new BorderLayout(10, 0));
+        painelInputContainer.setOpaque(false);
+        btnEnviar = new JButton("Enviar");
+
         painelInputContainer.add(painelInput, BorderLayout.CENTER);
-        painelInputContainer.add(btnEnviar, BorderLayout.EAST);
-        
+        painelInputContainer.add(btnEnviar, BorderLayout.EAST); 
         JPanel painelSul = new JPanel();
         painelSul.setLayout(new BoxLayout(painelSul, BoxLayout.Y_AXIS));
         painelSul.setOpaque(false);
@@ -199,35 +211,41 @@ public class TelaJogo extends Tela {
         
         btnEnviar.addActionListener(this::enviarAcao);
         campoResposta.addActionListener(this::enviarAcao);
-        
+        habilitarInteracao(false); 
+
         return painelExterno;
     }
 
-    // --- MÉTODOS PÚBLICOS PARA O CONTROLLER ---
+    // --- MÉTODOS PÚBLICOS (API para o Controller) ---
     
-    // Chamado pelo controller para alternar para a tela de jogo.
     public void mostrarPainelJogo() {
         cardLayout.show(painelPrincipal, PAINEL_JOGO);
     }
-    /**
-     * Chamado pelo controller para alternar para a tela de espera.
-     * Isso é útil quando uma nova partida começa após um reinício.
-     */
+
     public void mostrarPainelEspera() {
         cardLayout.show(painelPrincipal, PAINEL_ESPERA);
     }
-    // Chamado para atualizar a mensagem de boas vindas com o nome do jogador.
+    
     public void setNomeJogador(String nome) {
         labelBemVindo.setText("Bem vindo, " + nome + "!");
     }
     
-    // Atualiza os placares no topo da tela.
-    public void atualizarPlacares(String nomeJogador1, int pontos1, String nomeJogador2, int pontos2) {
-        labelPlacar1.setText(nomeJogador1 + ": " + pontos1 + " pontos");
-        labelPlacar2.setText(nomeJogador2 + ": " + pontos2 + " pontos");
+    public void atualizarPlacares(Map<String, Integer> placares) {
+        int i = 1;
+        for (Map.Entry<String, Integer> entry : placares.entrySet()) {
+            String nome = entry.getKey();
+            int pontos = entry.getValue();
+            String textoPlacar = nome + ": " + pontos + " pontos";
+            
+            if (i == 1) {
+                labelPlacar1.setText(textoPlacar);
+            } else {
+                labelPlacar2.setText(textoPlacar);
+            }
+            i++;
+        }
     }
 
-    // Preenche a área de texto com a pergunta e as opções da rodada.
     public void setTextoPergunta(String pergunta, String[] opcoes) {
         StringBuilder sb = new StringBuilder();
         sb.append("Pergunta: ").append(pergunta).append("\n\n");
@@ -238,13 +256,8 @@ public class TelaJogo extends Tela {
         areaLogPerguntas.setText(sb.toString().trim());
     }
     
-    // Atualiza o texto de status (ex: "Sua vez!" ou "Aguarde...").
     public void setStatusTurno(String texto) {
         labelStatusTurno.setText(texto);
-    }
-
-    private void enviarAcao(ActionEvent e) { 
-        controller.enviarResposta(campoResposta.getText()); 
     }
 
     public void atualizarContador(String texto) { 
@@ -254,13 +267,23 @@ public class TelaJogo extends Tela {
     public void limparCampoResposta() { 
         campoResposta.setText(""); 
     }
-
+    
+    public void desabilitarInteracao() { 
+        campoResposta.setEnabled(false); 
+        btnEnviar.setEnabled(false); 
+    }
+    
     public int mostrarDialogoReiniciar() { 
         return JOptionPane.showConfirmDialog(frame, "A partida acabou. Desejam jogar novamente?", "Fim de Jogo", JOptionPane.YES_NO_OPTION); 
     }
 
-    public void desabilitarInteracao() { 
-        campoResposta.setEnabled(false); 
-        btnEnviar.setEnabled(false); 
+    public boolean estaVisivel() {
+        return frame.isVisible();
+    }
+    
+    // --- MÉTODOS PRIVADOS (Lógica Interna e Eventos) ---
+
+    private void enviarAcao(ActionEvent e) { 
+        controller.enviarResposta(campoResposta.getText()); 
     }
 }

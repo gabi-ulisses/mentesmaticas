@@ -20,7 +20,7 @@ public class Servidor {
                 while (true) {
                     System.out.println("\nAguardando 2 jogadores para uma nova partida...");
                     
-                    Socket j1 = servidor.accept();
+                    Socket j1 = servidor.accept(); 
                     System.out.println("Jogador 1 conectado: " + j1.getInetAddress().getHostAddress());
                     ObjectOutputStream saida1 = new ObjectOutputStream(j1.getOutputStream());
                     ObjectInputStream entrada1 = new ObjectInputStream(j1.getInputStream());

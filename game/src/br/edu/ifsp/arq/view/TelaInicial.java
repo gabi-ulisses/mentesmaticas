@@ -42,7 +42,7 @@ public class TelaInicial extends Tela{
         painelPrincipal.setBorder(new EmptyBorder(20, 20, 20, 20)); 
         frame.add(painelPrincipal);
 
-        // --- Adiciona a Logo ---
+        // Adiciona a Logo 
         try {
             ImageIcon logoIconOriginal = new ImageIcon(getClass().getResource("/logo.png"));
             Image imagemOriginal = logoIconOriginal.getImage();
@@ -57,7 +57,7 @@ public class TelaInicial extends Tela{
 
         painelPrincipal.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        // --- Painel de Boas-Vindas (Azul e Arredondado) ---
+        // Painel de Boas-Vindas (Azul e Arredondado) 
         JPanelArredondado painelBoasVindas = new JPanelArredondado();
         painelBoasVindas.setBackground(new Color(137, 207, 219)); // Cor azul do design
         painelBoasVindas.setLayout(new GridBagLayout()); 
@@ -71,7 +71,7 @@ public class TelaInicial extends Tela{
         // Adiciona um espaço vertical PEQUENO, pois os painéis são juntos na imagem.
         painelPrincipal.add(Box.createRigidArea(new Dimension(0, 5)));
         
-        // --- Painel de Login (Branco e Arredondado) ---
+        // Painel de Login (Branco e Arredondado) 
         JPanelArredondado painelLogin = new JPanelArredondado();
         painelLogin.setBackground(Color.WHITE);
         painelLogin.setLayout(new BoxLayout(painelLogin, BoxLayout.Y_AXIS));
@@ -98,15 +98,20 @@ public class TelaInicial extends Tela{
         
         painelPrincipal.add(painelLogin);
         
-        // --- Botão Conectar (separado, abaixo dos painéis) ---
+        // Botão Conectar (separado, abaixo dos painéis) 
         painelPrincipal.add(Box.createVerticalGlue()); // Espaço flexível para empurrar o botão para baixo
         
         JButton btnConectar = new JButton("Conectar ao Jogo");
         btnConectar.setAlignmentX(JPanel.CENTER_ALIGNMENT);
         painelPrincipal.add(btnConectar);
         
-        // --- Ação do Botão ---
-        btnConectar.addActionListener(e -> controller.conectar(txtNome.getText()));
+        // Ação do Botão usando uma Classe Anônima
+        btnConectar.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                controller.conectar(txtNome.getText());
+            }
+        });
     }
 
 }

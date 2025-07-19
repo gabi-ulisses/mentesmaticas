@@ -13,21 +13,15 @@ import org.w3c.dom.Node;
  */
 public class Config {
     
-    // Variáveis para guardar o IP e a Porta depois de lidos.
-    // Começam vazias.
     private static String ip;
     private static int porta = -1;
 
-    // Construtor privado. Impede que alguém crie um objeto "new Config()".
-    // A classe só deve ser usada assim: Config.getIp().    
     private Config() { } 
     
-    // Método que faz o trabalho pesado de ler o arquivo XML.
+    // Método que lê o arquivo XML.
     private static void lerConfiguracoes() {
         try {
-            // Encontra o arquivo config.xml na pasta do projeto.
             File arquivo = new File("config.xml");
-            // Prepara as ferramentas do Java para ler XML.
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document doc = builder.parse(arquivo);
@@ -50,17 +44,13 @@ public class Config {
         }
     }
 
-    // Método que as outras classes usam para pegar o IP.
     public static String getIp() {
-        // Se o IP ainda não foi lido, chama o método para ler.
-        // Isso garante que a leitura do arquivo aconteça só uma vez.
         if (ip == null) {
             lerConfiguracoes();
         }
         return ip;
     }
     
-    // Método que as outras classes usam para pegar a Porta.
     public static int getPorta() {
         if (porta == -1) {
             lerConfiguracoes();
