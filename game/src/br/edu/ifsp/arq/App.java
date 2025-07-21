@@ -10,7 +10,7 @@ public class App {
     public static void main(String[] args) {
         // Cria o JogoController, que é o "cérebro" da nossa aplicação cliente.
         JogoController controller = new JogoController();
-        // Chama o método iniciar() no controller para que ele mostre a primeira tela (a de login).
+        // Chama o método iniciar() no controller para que ele mostre a primeira tela (a de login)
         controller.iniciar();
     }
 }
