@@ -12,6 +12,10 @@ import br.edu.ifsp.arq.model.Questao;
 
 /**
  * Lê as perguntas do arquivo questoes.xml, isolando a lógica de leitura de arquivos do resto do jogo.
+ * Funcionalidade principal:
+ * - Ler o arquivo "questoes.xml";
+ * - Interpretar o enunciado, as opções e a resposta correta de cada pergunta;
+ * - Retornar uma lista de objetos Questao para uso no jogo.
  */
 public class QuestaoDAO {
     // Lê o arquivo XML e retorna uma lista de objetos Questao.
