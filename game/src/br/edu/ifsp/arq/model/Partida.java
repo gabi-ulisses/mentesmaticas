@@ -22,6 +22,7 @@ import java.util.TimerTask;
 /**
  * É o "Mestre do Jogo". Controla uma partida completa para uma dupla de jogadores.
  * Roda em sua própria Thread para não travar o servidor principal.
+ * Lógico do jogo
  */
 public class Partida implements Runnable {
     
