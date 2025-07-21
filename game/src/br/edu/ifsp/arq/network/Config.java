@@ -9,6 +9,7 @@ import org.w3c.dom.Node;
 
 /**
  * Guarda o IP e a Porta do servidor lidos do arquivo config.xml.
+ * Lê o arquivo config.xml
  */
 public class Config {
     

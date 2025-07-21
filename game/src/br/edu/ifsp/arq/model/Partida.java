@@ -47,7 +47,7 @@ public class Partida implements Runnable {
     private boolean partidaEmAndamento;
     private Timer timerGeral;
     
-    // Atributos para comunicação entre as Threads
+    // Atributos para comunicação entre as Threads.
     private final Object trava = new Object(); 
     private RespostaJogador ultimaRespostaRecebida;
     private String ultimoComandoRecebido;
