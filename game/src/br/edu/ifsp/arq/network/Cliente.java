@@ -10,7 +10,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 
 /**
- * Cuida da conexão de rede e da comunicação com o servidor.
+ * Possibilita a conexão de rede e da comunicação com o servidor.
  * Reporta todos os eventos (mensagens, desconexões) para o JogoController.
  */
 public class Cliente {
@@ -65,7 +65,7 @@ public class Cliente {
         }).start();
     }
 
-    // Método que o controller usa para enviar uma mensagem para o servidor.
+    // Controller usa para enviar uma mensagem para o servidor.
     public void enviarMensagem(String mensagem) {
         try {
             saida.writeObject(mensagem);
@@ -76,7 +76,7 @@ public class Cliente {
         }
     }
     
-    // Método para verificar se a conexão ainda está ativa e aberta.
+    // Verifica se a conexão ainda está ativa e aberta.
     public boolean isConectado() {
         return conexao != null && !conexao.isClosed();
     }

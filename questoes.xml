@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <listaDeQuestoes>
 
-    <questao correta="1">
+    <questao correta="0">
         <enunciado>Qual o resultado da operação 5 + 3 * 2?</enunciado>
         <opcoes>
             <opcao>16</opcao>

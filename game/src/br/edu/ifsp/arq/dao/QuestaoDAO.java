@@ -11,8 +11,7 @@ import org.w3c.dom.NodeList;
 import br.edu.ifsp.arq.model.Questao;
 
 /**
- * O "bibliotecário" que sabe como ler as perguntas do arquivo questoes.xml.
- * Ele isola a lógica de leitura de arquivos do resto do jogo.
+ * Lê as perguntas do arquivo questoes.xml, isolando a lógica de leitura de arquivos do resto do jogo.
  */
 public class QuestaoDAO {
     // Lê o arquivo XML e retorna uma lista de objetos Questao.

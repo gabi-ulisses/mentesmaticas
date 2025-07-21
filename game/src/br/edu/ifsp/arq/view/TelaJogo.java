@@ -26,25 +26,24 @@ import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 
 /**
- * É a tela principal do jogo, onde as perguntas e o placar aparecem.
+ * Tela principal do jogo, onde as perguntas e o placar aparecem.
  * Utiliza um CardLayout para alternar entre a tela de "Espera" e a de "Perguntas".
  */
 public class TelaJogo extends Tela {
-    // --- Atributos ---
     
     // Referências externas e de layout
     private JogoController controller;    
     private JPanel painelPrincipal;
     private CardLayout cardLayout;
     
-    // Componentes da UI (Placar)
+    // Componentes do Placar
     private JLabel labelPlacar1;
     private JLabel labelPlacar2;
     
-    // Componentes da UI (Painel de Espera)
+    // Componentes do Painel de Espera
     private JLabel labelBemVindo;
 
-    // Componentes da UI (Painel de Jogo)
+    // Componentes do Painel de Jogo
     private JTextArea areaLogPerguntas;
     private JTextField campoResposta;
     private JButton btnEnviar;
@@ -55,22 +54,19 @@ public class TelaJogo extends Tela {
     private final String PAINEL_ESPERA = "TELA_ESPERA";
     private final String PAINEL_JOGO = "TELA_JOGO";
 
-    // --- Construtor ---
-
     public TelaJogo(JogoController controller) {
         super("MentesMáticas");
         this.controller = controller;
         inicializarComponentes();
     }
     
-    // --- Métodos de Inicialização da UI (Chamados pelo Construtor) ---
-    
     private void inicializarComponentes() {
         // Configuração da Janela Principal (JFrame) 
         frame.setSize(700, 700);
+        frame.setLocationRelativeTo(null); // Centraliza a janela na tela
         frame.getContentPane().setBackground(new Color(214, 237, 240));
 
-        // PAINEL DO PLACAR (TOPO) 
+        // Placar 
         JPanel painelPlacarContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 50, 20));
         painelPlacarContainer.setOpaque(false);
         labelPlacar1 = new JLabelArredondado("Jogador 1: 0 pontos", new Color(255, 235, 156));
@@ -79,7 +75,8 @@ public class TelaJogo extends Tela {
         painelPlacarContainer.add(labelPlacar2);
         frame.add(painelPlacarContainer, BorderLayout.NORTH);
         
-        // PAINEL PRINCIPAL COM CARDLAYOUT (CENTRO) 
+        // Painel Principal com CardLayout
+        // Usamos CardLayout para alternar entre a tela de espera e a tela de jogo
         cardLayout = new CardLayout();
         painelPrincipal = new JPanel(cardLayout);
         painelPrincipal.setOpaque(false);
@@ -95,7 +92,7 @@ public class TelaJogo extends Tela {
         cardLayout.show(painelPrincipal, PAINEL_ESPERA);
     }
     
-    // Método que monta a tela de "Aguardando jogador...".
+    // monta a tela de "Aguardando jogador...".
     private JPanel criarPainelEspera() {
         JPanel painel = new JPanel();
         painel.setLayout(new BoxLayout(painel, BoxLayout.Y_AXIS));
@@ -146,12 +143,12 @@ public class TelaJogo extends Tela {
         campoResposta.setEnabled(habilitar);
         btnEnviar.setEnabled(habilitar);
 
-        // Melhoria de usabilidade: se habilitar, o cursor já vai para o campo de texto.
+        // se habilitar, o cursor já vai para o campo de texto.
         if (habilitar) {
             campoResposta.requestFocusInWindow();
         }
     }
-    // Método que monta a tela principal, com as perguntas.
+    //  monta a tela principal, com as perguntas.
     private JPanel criarPainelJogo() {
         JPanel painelExterno = new JPanel(new BorderLayout());
         painelExterno.setOpaque(false);
@@ -188,7 +185,7 @@ public class TelaJogo extends Tela {
         campoResposta.setFont(new Font("Arial", Font.PLAIN, 16));
         
         painelInput.add(lblContador);
-        painelInput.add(Box.createRigidArea(new Dimension(10, 0))); // Um espaço fixo entre eles
+        painelInput.add(Box.createRigidArea(new Dimension(10, 0))); 
         painelInput.add(campoResposta);
         
         JPanel painelInputContainer = new JPanel(new BorderLayout(10, 0));
@@ -216,7 +213,6 @@ public class TelaJogo extends Tela {
         return painelExterno;
     }
 
-    // --- MÉTODOS PÚBLICOS (API para o Controller) ---
     
     public void mostrarPainelJogo() {
         cardLayout.show(painelPrincipal, PAINEL_JOGO);
@@ -281,7 +277,7 @@ public class TelaJogo extends Tela {
         return frame.isVisible();
     }
     
-    // --- MÉTODOS PRIVADOS (Lógica Interna e Eventos) ---
+    // Lógica interna e eventos
 
     private void enviarAcao(ActionEvent e) { 
         controller.enviarResposta(campoResposta.getText()); 

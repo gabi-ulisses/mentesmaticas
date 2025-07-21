@@ -21,11 +21,9 @@ import java.util.TimerTask;
 
 /**
  * É o "Mestre do Jogo". Controla uma partida completa para uma dupla de jogadores.
- * Roda em sua própria "trabalho" (Thread) para não travar o servidor principal.
+ * Roda em sua própria Thread para não travar o servidor principal.
  */
 public class Partida implements Runnable {
-
-    // Atributos da Classe 
     
     private static final int TEMPO_POR_RODADA_SEGUNDOS = 60;
 
@@ -39,7 +37,10 @@ public class Partida implements Runnable {
     private ObjectOutputStream saida1;
     private ObjectInputStream entrada2;
     private ObjectOutputStream saida2;
-    
+
+    private final Map<Jogador, ObjectOutputStream> saidasDosJogadores = new HashMap<>();
+    private final Map<Jogador, ObjectInputStream> entradasDosJogadores = new HashMap<>(); 
+
     // Atributos de controle de estado do jogo
     private boolean sessaoAtiva;
     private boolean partidaEmAndamento;
@@ -51,8 +52,6 @@ public class Partida implements Runnable {
     private String ultimoComandoRecebido;
     private Jogador autorDoUltimoComando;
 
-    // Construtor 
-
     public Partida(ObjectInputStream entrada1, ObjectOutputStream saida1, ObjectInputStream entrada2, ObjectOutputStream saida2) {
         this.questoes = new ArrayList<>();
         this.entrada1 = entrada1;
@@ -60,8 +59,6 @@ public class Partida implements Runnable {
         this.entrada2 = entrada2;
         this.saida2 = saida2;
     }
-
-    // Métodos Principais (Ciclo de Vida da Thread) 
 
     @Override
     public void run() {
@@ -101,24 +98,24 @@ public class Partida implements Runnable {
         for (Questao questao : questoes) {
             if (!sessaoAtiva) break;
             transmitirParaTodos(new MensagemStatus("\nNOVA RODADA"));
-
             List<String> opcoesLista = Arrays.asList(questao.getOpcoes());
             transmitirParaTodos(new MensagemPergunta(questao.getEnunciado(), opcoesLista));
 
             for (Jogador jogadorDaVez : jogadores) {
                 if (!sessaoAtiva) break;
 
-                Jogador outroJogador = (jogadorDaVez.equals(jogador1)) ? jogador2 : jogador1;
+                Jogador outroJogador = (jogadorDaVez.equals(jogadores.get(0))) ? jogadores.get(1) : jogadores.get(0);
+
                 enviarMensagemParaJogador(jogadorDaVez, new MensagemControle(MensagemControle.Tipo.SOLICITAR_RESPOSTA, "Sua vez, " + jogadorDaVez.getNome() + "! Responda:"));
                 enviarMensagemParaJogador(outroJogador, new MensagemControle(MensagemControle.Tipo.AGUARDAR_OPONENTE, "Aguarde a vez de " + jogadorDaVez.getNome() + "..."));
 
                 iniciarTimerRodada();
-
                 long tempoLimite = System.currentTimeMillis() + (TEMPO_POR_RODADA_SEGUNDOS * 1000);
                 RespostaJogador respostaProcessada = null;
 
                 synchronized (trava) {
                     while (System.currentTimeMillis() < tempoLimite && sessaoAtiva && respostaProcessada == null) {
+
                         trava.wait(tempoLimite - System.currentTimeMillis());
                         
                         if (ultimaRespostaRecebida != null) {
@@ -130,6 +127,7 @@ public class Partida implements Runnable {
                                 ultimaRespostaRecebida = null;
                             }
                         }
+
                     }
                 }
                 
@@ -176,7 +174,7 @@ public class Partida implements Runnable {
         }
     }
 
-    // Métodos de Configuração e Preparação 
+    // Configuração e preparação da partida
 
     private void configurarJogadores() throws IOException, ClassNotFoundException {
         String welcomeMessage = "Bem-vindo ao Mentes Máticas!\n\nRegras do Jogo: \n"+
@@ -196,15 +194,20 @@ public class Partida implements Runnable {
         this.jogador2 = new Jogador(nome2);
         System.out.println("Jogador 2 '" + nome2 + "' configurado.");
 
+        // Associa os jogadores (sem ordenação por nome) aos seus canais de comunicação
+        saidasDosJogadores.put(jogador1, saida1);
+        saidasDosJogadores.put(jogador2, saida2);
+        entradasDosJogadores.put(this.jogador1, entrada1);
+        entradasDosJogadores.put(this.jogador2, entrada2);
+
+        // Adiciona os jogadores à lista que será usada para ordem de jogada
         jogadores.add(jogador1);
         jogadores.add(jogador2);
         jogadores.sort((j1, j2) -> j1.getNome().compareToIgnoreCase(j2.getNome()));
-        
-        this.jogador1 = jogadores.get(0);
-        this.jogador2 = jogadores.get(1);
     }
     
     private void iniciarOuvintes() {
+        // Inicia os ouvintes considerando os jogadores sem ordenação, garantindo a ligação correta com os canais de entrada
         iniciarOuvinte(jogador1, entrada1);
         iniciarOuvinte(jogador2, entrada2);
     }
@@ -237,7 +240,7 @@ public class Partida implements Runnable {
         Collections.shuffle(this.questoes);
     }
 
-    // Métodos de Processamento e Lógica do Jogo 
+    // Processamento e lógica do jogo
 
     private void processarMensagemDeTexto(Jogador autor, String mensagem) {
         synchronized (trava) {
@@ -287,13 +290,18 @@ public class Partida implements Runnable {
 
     private void anunciarVencedorFinal() throws IOException {
         transmitirParaTodos(new MensagemStatus("\nFIM DE JOGO"));
+
+        jogadores.sort((j1, j2) -> Integer.compare(j2.getPontuacao(), j1.getPontuacao()));
+
+        Jogador primeiroLugar = jogadores.get(0);
+        Jogador segundoLugar = jogadores.get(1);
         
-        if (jogador1.getPontuacao() == jogador2.getPontuacao()) {
-            transmitirParaTodos(new MensagemStatus("Houve um empate com " + jogador1.getPontuacao() + " pontos!"));
-        } else if (jogador1.getPontuacao() > jogador2.getPontuacao()) {
-            transmitirParaTodos(new MensagemStatus("O grande vencedor é: " + jogador1.getNome() + " com " + jogador1.getPontuacao() + " pontos!"));
+        if (primeiroLugar.getPontuacao() == segundoLugar.getPontuacao()) {
+            transmitirParaTodos(new MensagemStatus("Houve um empate com " + primeiroLugar.getPontuacao() + " pontos!"));
+        } else if (primeiroLugar.getPontuacao() > segundoLugar.getPontuacao()) {
+            transmitirParaTodos(new MensagemStatus("O grande vencedor é: " + primeiroLugar.getNome() + " com " + primeiroLugar.getPontuacao() + " pontos!"));
         } else {
-            transmitirParaTodos(new MensagemStatus("O grande vencedor é: " + jogador2.getNome() + " com " + jogador2.getPontuacao() + " pontos!"));
+            transmitirParaTodos(new MensagemStatus("O grande vencedor é: " + segundoLugar.getNome() + " com " + segundoLugar.getPontuacao() + " pontos!"));
         }
     }
     
@@ -326,11 +334,13 @@ public class Partida implements Runnable {
         }, 0, 1000);
     }
     
-    // Métodos de Comunicação (Rede) 
+    // Comunicação (Rede) 
 
     private void enviarMensagemParaJogador(Jogador jogador, Mensagem mensagem) throws IOException {
         if (!sessaoAtiva) return;
-        ObjectOutputStream saida = (jogador.equals(jogador1)) ? saida1 : saida2;
+
+        ObjectOutputStream saida = saidasDosJogadores.get(jogador);
+
         try {
             saida.writeObject(mensagem);
             saida.flush();
@@ -341,8 +351,9 @@ public class Partida implements Runnable {
     }
 
     private void transmitirParaTodos(Mensagem mensagem) throws IOException {
-        enviarMensagemParaJogador(jogador1, mensagem);
-        enviarMensagemParaJogador(jogador2, mensagem);
+        for (Jogador jogador : saidasDosJogadores.keySet()) {
+            enviarMensagemParaJogador(jogador, mensagem);
+        }
     }
     
     private void encerrarSessao() {

@@ -13,13 +13,12 @@ import javax.swing.JOptionPane;
 
 /**
  * Controla a lógica da aplicação do lado do jogador.
- * VERSÃO SIMPLIFICADA SEM SwingUtilities.invokeLater
  */
 public class JogoController {
     private TelaInicial telaInicial;
     private TelaJogo telaJogo;
     private Cliente cliente;
-    private String nomeEsteJogador;
+    private String nomeJogadorLocal;
 
     public JogoController(){
         this.telaInicial = new TelaInicial(this);
@@ -35,15 +34,15 @@ public class JogoController {
             telaInicial.mostrarAviso("O nome do jogador não pode estar vazio.");
             return;
         }
-        this.nomeEsteJogador = nomeJogador;
+        this.nomeJogadorLocal = nomeJogador;
         this.cliente = new Cliente(this);
         
         if (cliente.conectar()) {
             telaInicial.esconder();
             telaJogo.mostrar();
-            telaJogo.setTitulo("MentesMáticas - " + nomeEsteJogador);
-            telaJogo.setNomeJogador(nomeEsteJogador);
-            cliente.enviarMensagem(nomeEsteJogador);
+            telaJogo.setTitulo("MentesMáticas - " + nomeJogadorLocal);
+            telaJogo.setNomeJogador(nomeJogadorLocal);
+            cliente.enviarMensagem(nomeJogadorLocal);
         } else {
             telaInicial.mostrarAviso("Não foi possível conectar ao servidor.");
         }
@@ -58,7 +57,7 @@ public class JogoController {
     }
         
     public void processarMensagemDoServidor(Mensagem mensagem) {
-        // As chamadas para a tela agora são feitas diretamente.
+
         if (mensagem instanceof MensagemPergunta) {
             MensagemPergunta msg = (MensagemPergunta) mensagem;
             telaJogo.setTextoPergunta(msg.getEnunciado(), msg.getOpcoes().toArray(new String[0]));
@@ -88,7 +87,7 @@ public class JogoController {
                 if (escolha == JOptionPane.YES_OPTION) {
                     cliente.enviarMensagem("JOGAR_NOVAMENTE_SIM");
                     telaJogo.mostrarPainelEspera();
-                    telaJogo.setNomeJogador(nomeEsteJogador);
+                    telaJogo.setNomeJogador(nomeJogadorLocal);
                 }
                 break;
             
@@ -116,7 +115,7 @@ public class JogoController {
     }
     
     public void notificarDesconexao(String aviso) {
-        // Chamada direta para a tela.
+
         if (telaJogo.estaVisivel()) {
             telaJogo.mostrarAviso(aviso);
             telaJogo.desabilitarInteracao();

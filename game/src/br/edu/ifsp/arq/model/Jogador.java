@@ -3,8 +3,7 @@ package br.edu.ifsp.arq.model;
 import java.util.Objects;
 
 /**
- * Guarda o nome e a pontuação de um jogador.
- * Também traz a funcionalidade de comparar dois jogadores pelo nome.
+ * Guarda o nome e a pontuação de um jogador, além de comparar dois jogadores pelo nome.
  */
 public class Jogador {
 
@@ -33,17 +32,20 @@ public class Jogador {
     }
 
     @Override
-    // O método equals diz quando dois jogadores são "iguais".
     // No nosso caso, dois jogadores são iguais se tiverem o mesmo nome.
     public boolean equals(Object o) {
-        if (this == o) return true; // Se for exatamente o mesmo objeto na memória.
-        if (o == null || getClass() != o.getClass()) return false; // Se não for um objeto do tipo Jogador.
+        if (this == o){
+            return true; // Se for exatamente o mesmo objeto na memória.
+        } 
+        if (o == null || getClass() != o.getClass()){
+            return false; // Se não for um objeto do tipo Jogador.
+        } 
         Jogador jogador = (Jogador) o;
         return Objects.equals(nome, jogador.nome);
     }
 
     @Override
-    // O hashCode cria um "código" numérico único baseado no nome.
+    // "código" numérico único baseado no nome.
     public int hashCode() {
         return Objects.hash(nome);
     }

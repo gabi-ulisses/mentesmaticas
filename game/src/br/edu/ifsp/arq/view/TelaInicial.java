@@ -19,7 +19,7 @@ import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
 /**
- * É a tela de login do jogo, a primeira coisa que o jogador vê.
+ * Tela de login do jogo, a primeira coisa que o jogador vê.
  * Sua única função é pegar o nome do jogador e avisar o Controller
  * quando o botão de conectar for clicado.
  */
@@ -35,7 +35,7 @@ public class TelaInicial extends Tela{
 
     private void inicializarComponentes() {
         frame.setSize(400, 550); 
-    
+        frame.setLocationRelativeTo(null); // Centraliza a janela na tela
         JPanel painelPrincipal = new JPanel();
         painelPrincipal.setBackground(new Color(214, 237, 240)); 
         painelPrincipal.setLayout(new BoxLayout(painelPrincipal, BoxLayout.Y_AXIS)); 
@@ -57,7 +57,7 @@ public class TelaInicial extends Tela{
 
         painelPrincipal.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        // Painel de Boas-Vindas (Azul e Arredondado) 
+        // Painel de Boas-Vindas
         JPanelArredondado painelBoasVindas = new JPanelArredondado();
         painelBoasVindas.setBackground(new Color(137, 207, 219)); // Cor azul do design
         painelBoasVindas.setLayout(new GridBagLayout()); 
@@ -71,7 +71,7 @@ public class TelaInicial extends Tela{
         // Adiciona um espaço vertical PEQUENO, pois os painéis são juntos na imagem.
         painelPrincipal.add(Box.createRigidArea(new Dimension(0, 5)));
         
-        // Painel de Login (Branco e Arredondado) 
+        // Painel de Login
         JPanelArredondado painelLogin = new JPanelArredondado();
         painelLogin.setBackground(Color.WHITE);
         painelLogin.setLayout(new BoxLayout(painelLogin, BoxLayout.Y_AXIS));
@@ -88,7 +88,6 @@ public class TelaInicial extends Tela{
         txtNome.setMaximumSize(new Dimension(300, 50));
         txtNome.setFont(new Font("Arial", Font.PLAIN, 16));
         txtNome.setHorizontalAlignment(JTextField.CENTER);
-        // Define a cor de fundo do campo de texto para um cinza claro, como na imagem
         txtNome.setBackground(new Color(235, 235, 235));
         
         // Adiciona os componentes ao painel de login com espaçamentos
@@ -98,14 +97,14 @@ public class TelaInicial extends Tela{
         
         painelPrincipal.add(painelLogin);
         
-        // Botão Conectar (separado, abaixo dos painéis) 
-        painelPrincipal.add(Box.createVerticalGlue()); // Espaço flexível para empurrar o botão para baixo
+        // Botão "Conectar ao Jogo" 
+        painelPrincipal.add(Box.createVerticalGlue()); // Adiciona um espaço flexível para empurrar o botão para baixo
         
         JButton btnConectar = new JButton("Conectar ao Jogo");
         btnConectar.setAlignmentX(JPanel.CENTER_ALIGNMENT);
         painelPrincipal.add(btnConectar);
         
-        // Ação do Botão usando uma Classe Anônima
+        // Ação do Botão "Conectar ao Jogo" Classe Anônima
         btnConectar.addActionListener(new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {

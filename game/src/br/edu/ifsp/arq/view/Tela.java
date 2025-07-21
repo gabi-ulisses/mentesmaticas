@@ -4,13 +4,11 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 /**
- * Classe "mãe" abstrata para todas as janelas do jogo.
- * Contém o código comum (o JFrame e os métodos de controle)
- * para evitar a repetição de código nas classes "filhas".
+ * Superclasse abstrata para todas as janelas do jogo.
+ * Contém o código comum (o JFrame e os métodos de controle) para evitar a repetição de código nas subclasses.
  */
 public abstract class Tela {
-    // O JFrame agora pertence à classe base.
-    // "protected" significa que ele é acessível por esta classe e suas filhas.
+    // "protected"= acessível por esta classe e as subclasses.
     protected JFrame frame;
 
 
@@ -21,12 +19,12 @@ public abstract class Tela {
         frame.setResizable(false);
     }
 
-    // Método que o controller chama para tornar janela visível.
+    // Controller chama para tornar janela visível.
     public void mostrar() {
         frame.setVisible(true);
     }
 
-    // Método que o controller chama para esconder janela.
+    // Controller chama para esconder janela.
     public void esconder() {
         frame.setVisible(false);
     }

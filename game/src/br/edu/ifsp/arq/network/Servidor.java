@@ -15,7 +15,7 @@ public class Servidor {
             
             try (ServerSocket servidor = new ServerSocket(Config.getPorta(), 2, InetAddress.getByName(Config.getIp()))) {
 
-                System.out.println("Servidor MentesMáticas iniciado em: " + Config.getIp() + ":" + Config.getPorta());
+                System.out.println("\nServidor MentesMáticas iniciado em: " + Config.getIp() + ":" + Config.getPorta());
 
                 while (true) {
                     System.out.println("\nAguardando 2 jogadores para uma nova partida...");
