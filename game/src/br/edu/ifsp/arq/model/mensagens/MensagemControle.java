@@ -3,7 +3,7 @@ package br.edu.ifsp.arq.model.mensagens;
 // Mensagem para controlar o fluxo do jogo.
 public class MensagemControle implements Mensagem {
     
-    // Usamos um Enum para definir os comandos de forma segura e clara.
+    // Usamos um Enum para definir os comandos
     public enum Tipo {
         INICIAR_JOGO,
         JOGAR_NOVAMENTE,
