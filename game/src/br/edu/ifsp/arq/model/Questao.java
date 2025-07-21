@@ -7,7 +7,7 @@ package br.edu.ifsp.arq.model;
 public class Questao {
 
     private String enunciado;
-    // Uma lista de textos com as alternativas (ex: ["3", "4", "5"]).
+    // Uma lista de textos com as alternativas (ex: ["3", "4", "5"])
     private String[] opcoes;
     // O número do índice da resposta correta na lista de opções.
     private int indiceRespostaCorreta;
