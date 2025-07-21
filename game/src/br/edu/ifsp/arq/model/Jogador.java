@@ -4,6 +4,10 @@ import java.util.Objects;
 
 /**
  * Guarda o nome e a pontuação de um jogador, além de comparar dois jogadores pelo nome.
+  * Também fornece métodos para:
+ * - Adicionar pontos;
+ * - Resetar a pontuação (por exemplo, ao reiniciar uma partida)
+ * - Gerar um hash consistente para uso em coleções como HashMap ou HashSet.
  */
 public class Jogador {
 
