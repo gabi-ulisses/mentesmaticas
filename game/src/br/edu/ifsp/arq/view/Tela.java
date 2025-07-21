@@ -15,7 +15,7 @@ public abstract class Tela {
     public Tela(String titulo) {
         frame = new JFrame(titulo);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLocationRelativeTo(null); // Centraliza a janela
+        frame.setLocationRelativeTo(null); // Centraliza a janela.
         frame.setResizable(false);
     }
 
