@@ -2,7 +2,7 @@ package br.edu.ifsp.arq.model;
 
 /**
  * Guarda os dados de uma única pergunta do jogo.
- * É como se fosse uma "ficha" com o enunciado, as opções e qual é a certa.
+ * É como se fosse uma "ficha" com o enunciado, as opções e qual é a certa
  */
 public class Questao {
 
