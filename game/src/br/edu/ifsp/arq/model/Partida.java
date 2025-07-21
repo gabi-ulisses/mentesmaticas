@@ -22,8 +22,16 @@ import java.util.TimerTask;
 /**
  * É o "Mestre do Jogo". Controla uma partida completa para uma dupla de jogadores.
  * Roda em sua própria Thread para não travar o servidor principal.
- * Lógico do jogo
+ * - Comunicação com os jogadores via streams de entrada e saída;
+ * - Controle do tempo para cada rodada;
+ * - Validação das respostas;
+ * - Cálculo e exibição do placar;
+ * - Comunicação assíncrona entre as threads dos jogadores;
+ * - Controle do fluxo de perguntas e respostas;
+ * - Encerramento e reinicialização de partidas.
  */
+
+ 
 public class Partida implements Runnable {
     
     private static final int TEMPO_POR_RODADA_SEGUNDOS = 60;
