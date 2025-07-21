@@ -52,7 +52,7 @@ public class JogoController {
         if (cliente != null && cliente.isConectado()) {
             cliente.enviarMensagem(texto);
             telaJogo.limparCampoResposta();
-            telaJogo.habilitarInteracao(false); // Bloqueia o campo após o envio.
+            telaJogo.habilitarInteracao(false); // Bloqueia o campo após o envio
         }
     }
         
